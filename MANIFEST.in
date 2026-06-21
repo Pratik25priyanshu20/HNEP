@@ -1,0 +1,28 @@
+# Tell setuptools what to include in the sdist beyond default heuristics.
+
+include LICENSE
+include README_HNEP.md
+include CHANGELOG.md
+include CONTRIBUTING_HNEP.md
+include pyproject.toml
+recursive-include hnep *.py *.typed
+recursive-include hnep/examples *.py
+recursive-include tests *.py
+
+# Documentation source (for users who build docs from sdist)
+recursive-include docs_hnep *.rst *.py Makefile
+
+# Exclude development / thesis-only artifacts
+prune src
+prune scripts
+prune notebooks
+prune experiments
+prune data
+prune config
+prune deployment
+prune api
+prune docs
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store

@@ -1,0 +1,1 @@
+"""HNEP utilities — internal helpers."""

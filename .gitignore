@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Test / lint / type caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Sphinx build
+docs_hnep/_build/
+
+# Generated artifacts from examples (don't commit user-generated reports)
+*.png
+*.pdf
+*.html
+report.json
+hnep_manifest.json
+
+# But DO ship example scripts + documentation source images
+!docs_hnep/**/*.png
+!hnep/examples/*.py
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Local PyPI tokens / secrets (never commit!)
+.pypirc
+*.token
