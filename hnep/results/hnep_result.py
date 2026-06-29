@@ -44,6 +44,11 @@ class HNEPResult:
     #: Human-readable notes (warnings, caveats).
     notes: List[str] = field(default_factory=list)
 
+    #: Optional molecular gallery — list of :class:`MoleculeRecord` (or
+    #: equivalent dicts). When present, the HTML report renders top-K and
+    #: bottom-K molecules by QCI as RDKit-drawn structures.
+    molecule_records: List[Any] = field(default_factory=list)
+
     # ── Display helpers ─────────────────────────────────────────────
 
     def summary(self) -> str:
@@ -132,3 +137,24 @@ class HNEPResult:
         """Render and write the HTML report (returns the HTML string)."""
         from hnep.reports.html import render_html_report
         return render_html_report(self, path=path, other_results=other_results)
+
+    # ── Day-7 exports ───────────────────────────────────────────────
+
+    def to_latex(self, **kwargs) -> str:
+        """Render as a self-contained LaTeX ``booktabs`` table.
+
+        See :func:`hnep.exports.to_latex` for keyword options
+        (``caption``, ``label``, ``include_caption``).
+        """
+        from hnep.exports import to_latex
+        return to_latex(self, **kwargs)
+
+    def to_markdown(self, include_explanation: bool = True) -> str:
+        """Render as a self-contained Markdown report (README-ready)."""
+        from hnep.exports import to_markdown
+        return to_markdown(self, include_explanation=include_explanation)
+
+    def explain(self) -> str:
+        """One-paragraph plain-English explanation of the verdict."""
+        from hnep.explain import explain_result
+        return explain_result(self)

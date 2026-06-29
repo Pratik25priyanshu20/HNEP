@@ -13,6 +13,13 @@ from typing import Optional, Sequence
 from hnep.results.hnep_result import HNEPResult
 from hnep.visualizations.qct_plane import plot_qct_plane
 from hnep.visualizations.radar import plot_convergent_validity_radar
+from hnep.gallery.molecular import (
+    GALLERY_CSS,
+    MoleculeRecord,
+    build_gallery,
+    render_gallery_html,
+)
+from hnep.explain import explain_result_html
 
 
 CSS = """
@@ -65,7 +72,7 @@ tr:nth-child(even) td { background: #fafafa; }
         padding: 0.6em 1em; margin: 1em 0; font-size: 0.9em; }
 code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px;
        font-size: 0.92em; }
-"""
+""" + GALLERY_CSS
 
 
 def _confidence_class(c: float) -> str:
@@ -160,6 +167,23 @@ def render_html_report(
 
     verdict_class = _verdict_class(result.qct_verdict)
 
+    # ── Molecular Chemistry Gallery (optional) ─────────────────────────
+    gallery_html = ""
+    if result.molecule_records:
+        records = []
+        for r in result.molecule_records:
+            if isinstance(r, MoleculeRecord):
+                records.append(r)
+            elif isinstance(r, dict):
+                records.append(MoleculeRecord(**r))
+        if records:
+            gallery = build_gallery(records, top_k=6, bottom_k=6)
+            gallery_html = render_gallery_html(
+                gallery,
+                title=f"Molecular Chemistry Gallery — {escape(result.dataset_name)}",
+                include_css=False,   # CSS already injected in <head>
+            )
+
     html = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <title>HNEP Report — {escape(result.model_name)}</title>
@@ -176,6 +200,8 @@ def render_html_report(
   <div class="verdict">{escape(result.qct_verdict)}</div>
   <div class="conf">QCT verdict — confidence {result.qct_confidence:.2f}</div>
 </div>
+
+{explain_result_html(result)}
 
 {notes_html}
 
@@ -204,6 +230,8 @@ def render_html_report(
   </tr></thead>
   <tbody>{probe_table}</tbody>
 </table>
+
+{gallery_html}
 
 <h2>Run Manifest</h2>
 <ul>{manifest_lines}</ul>

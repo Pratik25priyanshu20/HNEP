@@ -15,7 +15,8 @@ from hnep.thresholds import DEFAULT_THRESHOLDS, Thresholds
 
 def test_version_is_string():
     assert isinstance(hnep.__version__, str)
-    assert hnep.__version__.startswith("0.1.0")
+    # Version is pinned more strictly in tests/test_v02_surface.py.
+    assert hnep.__version__.split(".")[0] == "0"
 
 
 def test_top_level_exports_exist():

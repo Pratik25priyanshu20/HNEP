@@ -5,6 +5,79 @@ All notable changes to HNEP are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] — 2026-06-28
+
+Second release. Expands HNEP from two probes to **six**, adds two visualisations
+and a molecular-chemistry gallery, ships a verdict explainer, and rounds out the
+CLI for shareable summary cards and side-by-side comparison.
+
+### Added — Probes
+- `NoiseProbe` — framework-agnostic noise injection on quantum outputs with
+  built-in Gaussian, depolarising-approximation, and bit-flip models, plus a
+  `noise_fn` hook for custom noise. Verdicts: `STABLE` / `MOSTLY-STABLE` /
+  `PERFORMANCE-DEGRADES` / `VERDICT-FLIPS`.
+- `TemporalProbe` — single-checkpoint or list-of-checkpoint runs with
+  `STABLE` / `TRANSIENT-DRIFT` / `VERDICT-DRIFTS` verdicts; honestly warns
+  when only one checkpoint is supplied.
+- `ErrorDiversityProbe` — fits Ridge readouts from quantum-only and
+  classical-only branches and compares per-molecule errors. Verdicts:
+  `DIVERSE` (|r| < 0.5) / `REDUNDANT` (|r| ≥ 0.5) / `UNAVAILABLE`.
+- `RepresentationProbe` — CKA + mutual-information bundle. Reports
+  quantum↔classical, quantum↔target, classical↔target alignment with
+  bootstrap CIs. Verdicts: `QUANTUM-MORE-ALIGNED` /
+  `CLASSICAL-MORE-ALIGNED` / `UNAVAILABLE`. Includes `linear_cka()` and
+  `cka_with_scalar_target()` as public helpers.
+
+### Added — Visualisations
+- `plot_disagreement_heatmap()` — grid of probes × datasets with
+  verdict-coded cells, designed to surface convergent-validity disagreements
+  (e.g. NECESSARY × REDUNDANT) at a glance. Cell opacity reflects probe
+  confidence.
+- `plot_activation_atlas()` + `plot_activation_atlas_grid()` — 2-D
+  projections of quantum outputs (UMAP → t-SNE → PCA fallback chain) with
+  automatic 1-D-collapse warning.
+
+### Added — Molecular Chemistry Gallery
+- `hnep.gallery` package with `MoleculeRecord`, `build_gallery()`, and
+  `render_gallery_html()`.
+- HTML report now renders top-K and bottom-K molecules by QCI as
+  RDKit-drawn structures embedded as base64 PNGs. Gracefully degrades
+  to SMILES-only when RDKit is not installed.
+- `HNEPResult.molecule_records` field for supplying the records.
+
+### Added — HNEPCard + CLI
+- `HNEPCard.to_text()` / `to_markdown()` / `to_html()` — single-glance
+  summary card per evaluation, suitable for README badges, Slack messages,
+  and slide decks.
+- `compare_cards_text/markdown/html(results)` — side-by-side multi-model
+  comparison tables.
+- `load_result_from_json(path)` — round-trip an `HNEPResult` from disk.
+- `hnep card <result.json>` — render a card to stdout or a file.
+- `hnep compare a.json b.json [...]` — side-by-side comparison with
+  `--format {text,markdown,html}` and `-o/--output`.
+
+### Added — Verdict explainer + paper-ready exports
+- `explain_result(result)` — deterministic, templated, plain-English
+  paragraph that names the evidence behind every QCT verdict. Honestly
+  flags low-confidence probes when the verdict is `Inconclusive`.
+- `explain_result_html(result)` — same paragraph in a styled HTML block,
+  rendered directly under the verdict card in the HTML report.
+- `HNEPResult.to_latex()` / `compare_to_latex()` — `booktabs` tables ready
+  to drop into a paper as `\input{hnep_table.tex}`. Properly escapes
+  `_`/`&`/`%`/`#` in model and dataset names.
+- `HNEPResult.to_markdown()` / `compare_to_markdown()` — first-class
+  Markdown reports (verdict + explainer blockquote + probe table + notes)
+  suitable for README sections, GitHub issues, and model cards.
+
+### Tests
+- **170 tests passing** (up from 77 in 0.1.0): +13 Day-1, +13 Day-2,
+  +15 Day-3, +17 Day-4, +18 Day-6, +27 Day-7.
+
+### Notes
+- All v0.2 additions are additive — the v0.1.0 surface is unchanged.
+- Probe thresholds and the cost-utility model remain the v0.1 values; a
+  permutation-derived threshold is on the v0.3 roadmap.
+
 ## [0.1.0] — 2026-06-21
 
 First public release. The library is feature-complete for the QCT workflow

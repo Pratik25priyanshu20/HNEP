@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](#)
-[![Tests](https://img.shields.io/badge/tests-77%20passing-brightgreen.svg)](#)
+[![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](#)
+[![Tests](https://img.shields.io/badge/tests-170%20passing-brightgreen.svg)](#)
 [![Style](https://img.shields.io/badge/style-ruff-orange.svg)](#)
 
 > **Does the quantum component in your hybrid model actually contribute meaningful computation, or could a classical surrogate replace it?**
@@ -97,24 +97,44 @@ Wrap your model in one line:
 
 See [`hnep/examples/`](hnep/examples) for runnable examples of each.
 
-## What's in v0.1.0
+## What's in v0.2.0
 
-* Surrogation probe — 8-surrogate ladder (linear, KNN, trees, MLPs)
-* Intervention family — zero, random-noise, permutation, constant
-* QCT classifier with bootstrap confidence intervals
-* Cost-utility analysis: Pareto frontier + QUS + NISQ hardware cost projection
-* Killer figures: QCT plane, convergent validity radar, Pareto plot
-* HTML / JSON / CSV reports
-* Manifest files for reproducibility
-* CLI: `hnep evaluate`, `hnep replay`
-* Four adapters (Functional, Precomputed, JAX/Flax, PyTorch skeleton)
+**Six probes** — each independently answers one question about your hybrid:
+
+| Probe | Question |
+|---|---|
+| `SurrogationProbe` | Can a classical surrogate reproduce the quantum output? |
+| `InterventionProbe` | Does removing the quantum branch hurt performance? |
+| `NoiseProbe` | Is the verdict stable under realistic quantum noise? |
+| `TemporalProbe` | Does the verdict change across training checkpoints? |
+| `ErrorDiversityProbe` | Do quantum and classical branches err on the same molecules? |
+| `RepresentationProbe` | CKA + mutual information — which embedding is more target-aligned? |
+
+**Killer outputs**
+
+* `plot_qct_plane`, `plot_convergent_validity_radar`, `plot_pareto_with_hardware_cost`
+* `plot_disagreement_heatmap` — probes × datasets verdict grid
+* `plot_activation_atlas` — UMAP/t-SNE/PCA projection of quantum outputs
+* **Molecular Chemistry Gallery** — RDKit-rendered top-K / bottom-K molecules by QCI, embedded in the HTML report
+* **HNEPCard** — single-glance summary card (text / Markdown / HTML)
+* **Verdict explainer** — `result.explain()` returns a deterministic plain-English paragraph naming the evidence behind the verdict
+* **Paper-ready exports** — `result.to_latex()` (`booktabs` tables) and `result.to_markdown()` (README-ready)
+* HTML / JSON / CSV reports + manifest files for reproducibility
+
+**CLI**
+
+```bash
+hnep card result.json --format markdown
+hnep compare model_a.json model_b.json model_c.json --format html -o compare.html
+```
+
+**Adapters** — Functional, Precomputed, JAX/Flax, PyTorch skeleton (heavy deps lazy-imported).
 
 ## Roadmap
 
 See [`docs/HNEP_LIBRARY_ROADMAP.md`](docs/HNEP_LIBRARY_ROADMAP.md) for the version-by-version plan.
 
-* **v0.2** — molecular chemistry gallery, atom-level QCI, more probes
-* **v0.3** — Weights & Biases / Hugging Face / GitHub Action integrations
+* **v0.3** — permutation-derived thresholds, atom-level QCI, Weights & Biases / Hugging Face / GitHub Action integrations
 * **v0.4** — `hnep.dev` web sandbox
 * **v0.5** — HNEP Doctor (AI-powered recommendations)
 * **v1.0** — frozen API, HNEP Arena leaderboard, governance committee
