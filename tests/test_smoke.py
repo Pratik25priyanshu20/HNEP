@@ -44,29 +44,36 @@ def test_thresholds_are_immutable():
 def test_qct_classifier_basic_logic():
     classifier = QCTClassifier(thresholds=DEFAULT_THRESHOLDS)
 
-    # Surrogation NECESSARY (SS=0.4), intervention LOAD-BEARING (Δ=0.3)
+    # Boundary values chosen well clear of both legacy (0.20, 0.05) and T1.2
+    # recalibrated thresholds so the classifier logic stays exercised
+    # regardless of which calibration is active.
+
+    # NECESSARY (SS=0.4) + LOAD-BEARING (Δ=0.3)
     sur = ProbeResult("surrogation", primary_score=0.4)
     inter = ProbeResult("intervention", primary_score=0.3)
     assert classifier.classify(sur, inter) == QCTVerdict.GENUINE
 
-    # Surrogation REPLACEABLE (SS=0.05), intervention LOAD-BEARING (Δ=0.3)
-    sur = ProbeResult("surrogation", primary_score=0.05)
+    # REPLACEABLE (SS=0.001) + LOAD-BEARING (Δ=0.3)
+    sur = ProbeResult("surrogation", primary_score=0.001)
     assert classifier.classify(sur, inter) == QCTVerdict.REGULARIZER
 
-    # Surrogation NECESSARY (SS=0.4), intervention NOT load-bearing (Δ=0.01)
+    # NECESSARY (SS=0.4) + NOT-LOAD-BEARING (Δ=0.0001)
     sur = ProbeResult("surrogation", primary_score=0.4)
-    inter = ProbeResult("intervention", primary_score=0.01)
+    inter = ProbeResult("intervention", primary_score=0.0001)
     assert classifier.classify(sur, inter) == QCTVerdict.IGNORED
 
-    # Surrogation REPLACEABLE (SS=0.05), intervention NOT load-bearing (Δ=0.01)
-    sur = ProbeResult("surrogation", primary_score=0.05)
+    # REPLACEABLE (SS=0.001) + NOT-LOAD-BEARING (Δ=0.0001)
+    sur = ProbeResult("surrogation", primary_score=0.001)
     assert classifier.classify(sur, inter) == QCTVerdict.DEAD_WEIGHT
 
 
 def test_qct_inconclusive_when_ci_straddles_threshold():
     classifier = QCTClassifier(thresholds=DEFAULT_THRESHOLDS)
+    threshold = DEFAULT_THRESHOLDS.ss_replaceable
     sur = ProbeResult(
-        "surrogation", primary_score=0.21, primary_score_ci=(0.15, 0.28)
+        "surrogation",
+        primary_score=threshold,
+        primary_score_ci=(threshold - 0.05, threshold + 0.05),
     )
     inter = ProbeResult("intervention", primary_score=0.3)
     assert classifier.classify(sur, inter) == QCTVerdict.INCONCLUSIVE

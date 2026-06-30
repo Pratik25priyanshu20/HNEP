@@ -12,7 +12,7 @@ import inspect
 import hnep
 
 
-EXPECTED_VERSION = "0.2.0"
+EXPECTED_VERSION = "0.3.0"
 
 # Everything we promise users can import from the top-level `hnep` namespace.
 EXPECTED_TOP_LEVEL = {
@@ -50,7 +50,7 @@ EXPECTED_TOP_LEVEL = {
 }
 
 
-def test_version_is_v02():
+def test_version_matches_expected():
     assert hnep.__version__ == EXPECTED_VERSION
 
 

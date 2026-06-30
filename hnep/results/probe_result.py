@@ -34,6 +34,18 @@ class ProbeResult:
         :attr:`Probe.config`. Goes into the manifest for replay.
     notes
         Human-readable notes the probe wants to surface (warnings, caveats).
+    p_value
+        Optional permutation-test p-value (v0.3.0+). Populated when the probe
+        is constructed with ``calibrate=True``. SurrogationProbe only:
+        lower-tail p, i.e. ``P(SS_perm ≤ SS_obs | q ⊥ x)``. Low p ⇒
+        observed SS is significantly lower than the shuffled-q null ⇒
+        surrogate succeeds with statistical significance.
+
+        InterventionProbe deliberately does NOT populate p_value — the
+        per-row-shuffle null doesn't sample "β_q = 0" cleanly because the
+        model's β_q stays fixed, so a tail probability would not have
+        standard null-hypothesis-testing semantics. It instead exposes a
+        descriptive ``delta_shuffle_consistency`` in ``details``.
     """
 
     probe_name: str
@@ -44,6 +56,7 @@ class ProbeResult:
     details: Dict[str, Any] = field(default_factory=dict)
     config: Dict[str, Any] = field(default_factory=dict)
     notes: List[str] = field(default_factory=list)
+    p_value: Optional[float] = None
 
     def __repr__(self) -> str:
         ci = ""
@@ -70,4 +83,7 @@ class ProbeResult:
             "details": simplify(self.details),
             "config": simplify(self.config),
             "notes": list(self.notes),
+            "p_value": (
+                float(self.p_value) if self.p_value is not None else None
+            ),
         }

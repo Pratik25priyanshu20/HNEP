@@ -72,18 +72,24 @@ class InterventionProbe(Probe):
         n_bootstrap: int = 500,
         thresholds: Thresholds = DEFAULT_THRESHOLDS,
         seed: int = 42,
+        calibrate: bool = False,
+        n_permutations: int = 500,
     ) -> None:
         super().__init__(seed=seed)
         self.interventions = list(interventions)
         self.noise_scale = noise_scale
         self.n_bootstrap = n_bootstrap
         self.thresholds = thresholds
+        self.calibrate = calibrate
+        self.n_permutations = n_permutations
         self._config = {
             "seed": seed,
             "interventions": list(interventions),
             "noise_scale": noise_scale,
             "n_bootstrap": n_bootstrap,
             "load_threshold": thresholds.intervention_load_bearing,
+            "calibrate": calibrate,
+            "n_permutations": n_permutations if calibrate else 0,
         }
 
     # ── Probe API ───────────────────────────────────────────────────
@@ -146,7 +152,11 @@ class InterventionProbe(Probe):
             return _relative_drop(r2_i, r2_v)
 
         ci_lo, ci_hi = bootstrap_statistic_ci(
-            _stat, test_idx, n_resamples=self.n_bootstrap, rng=rng
+            _stat,
+            test_idx,
+            n_resamples=self.n_bootstrap,
+            rng=rng,
+            cluster_ids=dataset.cluster_ids,
         )
 
         if headline_delta > self.thresholds.intervention_load_bearing:
@@ -174,18 +184,53 @@ class InterventionProbe(Probe):
                 "Consider inspecting per-intervention results."
             )
 
+        # ── Optional: shuffle-consistency descriptive statistic ────────
+        # NOT a p-value. The per-row shuffle of q_test gives "Δ when the
+        # model receives wrong-q instead of zero-q" — for any model that
+        # genuinely uses q, shuffled-q strictly dominates zero-q in damage
+        # (β_q applied to wrong values vs β_q applied to zeros), so
+        # Δ_perm ≥ Δ_obs is the rule, not a tail. The null hypothesis
+        # required for a true p-value ("β_q = 0") would need refitting
+        # the user's decoder, which HNEP cannot do.
+        #
+        # We expose the mean (Δ_perm − Δ_obs) as a descriptive
+        # ``delta_shuffle_consistency``: large positive ⇒ shuffled-q is
+        # much worse than zero-q ⇒ model depends on q's *specific values*,
+        # not just on q's presence. The QCT classifier does not consume it.
+        delta_shuffle_consistency: Optional[float] = None
+        if self.calibrate:
+            perm_rng = np.random.default_rng(self.seed + 1)
+            perm_stats = np.empty(self.n_permutations)
+            for i in range(self.n_permutations):
+                q_perm = q_test.copy()
+                perm_rng.shuffle(q_perm, axis=0)
+                y_perm = model.predict_with_quantum_override(
+                    dataset, q_perm, indices=test_idx
+                )
+                r2_perm = float(r2_score(y_true, y_perm))
+                y_zero = model.predict_with_quantum_override(
+                    dataset, np.zeros_like(q_perm), indices=test_idx
+                )
+                r2_zero = float(r2_score(y_true, y_zero))
+                perm_stats[i] = _relative_drop(r2_perm, r2_zero)
+            delta_shuffle_consistency = float(np.mean(perm_stats) - headline_delta)
+
+        details_out: Dict[str, Any] = {
+            "headline_intervention": headline_name,
+            "r2_intact": r2_intact,
+            "per_intervention": results,
+            "intervention_disagreement": disagreement,
+        }
+        if delta_shuffle_consistency is not None:
+            details_out["delta_shuffle_consistency"] = delta_shuffle_consistency
+
         return ProbeResult(
             probe_name=self.name,
             primary_score=float(headline_delta),
             primary_score_ci=(float(ci_lo), float(ci_hi)),
             verdict=verdict,
             confidence=float(confidence),
-            details={
-                "headline_intervention": headline_name,
-                "r2_intact": r2_intact,
-                "per_intervention": results,
-                "intervention_disagreement": disagreement,
-            },
+            details=details_out,
             config=self.config,
             notes=notes,
         )

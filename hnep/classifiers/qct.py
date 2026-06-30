@@ -32,14 +32,29 @@ class QCTVerdict(str, Enum):
 class QCTClassifier:
     """Apply QCT thresholds to a (surrogation, intervention) probe pair.
 
-    The default thresholds match the values used throughout the thesis
-    benchmarks; users may pass custom :class:`Thresholds`.
+    The default thresholds match the empirical T1.2 calibration; users may
+    pass custom :class:`Thresholds`.
 
-    Phase 3 will extend this to consume confidence intervals and emit
-    ``Inconclusive`` whenever the intervals straddle a boundary.
+    ``use_p_values=True`` adds a convergent-validity gate: when a
+    REPLACEABLE verdict (SS < threshold) is not significant at p < 0.05
+    on the surrogation permutation test, the verdict falls back to
+    ``Inconclusive``. Specifically REGULARIZER / DEAD_WEIGHT need
+    ``surrogation.p_value < 0.05`` (SS is significantly lower than the
+    shuffled-q null).
+
+    The intervention probe also reports a permutation p-value, but the QCT
+    classifier does **not** gate on it: the per-row-shuffle null does not
+    cleanly sample "β_q = 0" because the model's trained β_q stays fixed,
+    so a high p_value on Δ does not have a clean reject-H0 interpretation.
+    See InterventionProbe.run for details.
+
+    Probes constructed without ``calibrate=True`` report ``p_value=None``,
+    which is treated as "p-value gate disabled for that probe".
     """
 
     thresholds: Thresholds = DEFAULT_THRESHOLDS
+    use_p_values: bool = False
+    p_value_threshold: float = 0.05
 
     def classify(
         self,
@@ -47,7 +62,8 @@ class QCTClassifier:
         intervention: ProbeResult,
     ) -> QCTVerdict:
         """Return a verdict; falls back to ``Inconclusive`` if a CI straddles
-        a threshold."""
+        a threshold or, when ``use_p_values=True``, if a REPLACEABLE verdict
+        fails its surrogation permutation-test significance gate."""
         if self._straddles_threshold(surrogation, self.thresholds.ss_replaceable):
             return QCTVerdict.INCONCLUSIVE
         if self._straddles_threshold(
@@ -57,6 +73,14 @@ class QCTClassifier:
 
         unique = surrogation.primary_score >= self.thresholds.ss_replaceable
         load_bearing = intervention.primary_score >= self.thresholds.intervention_load_bearing
+
+        if self.use_p_values:
+            if (
+                not unique
+                and surrogation.p_value is not None
+                and surrogation.p_value >= self.p_value_threshold
+            ):
+                return QCTVerdict.INCONCLUSIVE
 
         if unique and load_bearing:
             return QCTVerdict.GENUINE

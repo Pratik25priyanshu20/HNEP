@@ -29,7 +29,7 @@ from hnep.adapters.base import Dataset, ModelInterface
 from hnep.probes.base import Probe
 from hnep.results.probe_result import ProbeResult
 from hnep.thresholds import DEFAULT_THRESHOLDS, Thresholds
-from hnep.utils.bootstrap import bootstrap_ci
+from hnep.utils.bootstrap import bootstrap_statistic_ci
 
 
 @dataclass(frozen=True)
@@ -120,17 +120,23 @@ class SurrogationProbe(Probe):
         n_jobs: int = 1,
         thresholds: Thresholds = DEFAULT_THRESHOLDS,
         seed: int = 42,
+        calibrate: bool = False,
+        n_permutations: int = 500,
     ) -> None:
         super().__init__(seed=seed)
         self.surrogates = surrogates if surrogates is not None else default_surrogate_ladder()
         self.n_bootstrap = n_bootstrap
         self.n_jobs = n_jobs
         self.thresholds = thresholds
+        self.calibrate = calibrate
+        self.n_permutations = n_permutations
         self._config = {
             "seed": seed,
             "surrogates": [s.name for s in self.surrogates],
             "n_bootstrap": n_bootstrap,
             "ss_threshold": thresholds.ss_replaceable,
+            "calibrate": calibrate,
+            "n_permutations": n_permutations if calibrate else 0,
         }
 
     # ── Probe API ───────────────────────────────────────────────────
@@ -191,24 +197,37 @@ class SurrogationProbe(Probe):
         best = per_surrogate[best_idx]
         headline_ss = best["surrogation_score"]
 
-        # Bootstrap CI on the headline SS using the best surrogate's per-sample
-        # squared error contribution — i.e. resample the test set and recompute
-        # the best surrogate's SS each time.
+        # Bootstrap CI on the headline SS. Each resample recomputes the
+        # SAME statistic the headline reports — `1 - mean_d(max(0, R²_d))`
+        # using the best surrogate's predictions on the resampled test set.
+        # The pre-T1.2 implementation used a closed-form proxy (MSE divided
+        # by mean variance) which mismatched the headline denominator
+        # (per-dim variance) — fixed in v0.3.1.
         best_spec = self.surrogates[best_idx]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             best_models = _fit_per_dim(best_spec.build(), Xs_train, q_train)
-            preds = _predict_per_dim(best_models, Xs_test)
-        per_dim_sq_err = (preds - q_test) ** 2
-        # Per-sample contribution to (1 − R²) — proportional to squared error
-        # averaged across dims. Bootstrap the mean of this surrogate signal.
         rng = np.random.default_rng(self.seed)
-        per_sample = per_dim_sq_err.mean(axis=1)
-        # Scale into SS units via the variance ratio
-        baseline_var = q_test.var(axis=0).mean() or 1.0
-        ss_per_sample = per_sample / baseline_var
-        ci_lo, ci_hi = bootstrap_ci(ss_per_sample, n_resamples=self.n_bootstrap, rng=rng)
-        # Clip to [0, 1]
+
+        def _ss_statistic(resampled_test_idx: np.ndarray) -> float:
+            q_t = model.extract_quantum_output(dataset, resampled_test_idx)
+            x_t = scaler.transform(dataset.inputs[resampled_test_idx])
+            p_t = _predict_per_dim(best_models, x_t)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                per_dim_r2 = [
+                    max(0.0, float(r2_score(q_t[:, d], p_t[:, d])))
+                    for d in range(q_t.shape[1])
+                ]
+            return float(min(1.0, max(0.0, 1.0 - float(np.mean(per_dim_r2)))))
+
+        ci_lo, ci_hi = bootstrap_statistic_ci(
+            _ss_statistic,
+            test_idx,
+            n_resamples=self.n_bootstrap,
+            rng=rng,
+            cluster_ids=dataset.cluster_ids,
+        )
         ci_lo = float(max(0.0, min(1.0, ci_lo)))
         ci_hi = float(max(0.0, min(1.0, ci_hi)))
 
@@ -230,6 +249,41 @@ class SurrogationProbe(Probe):
             failed = [r["name"] for r in per_surrogate if "error" in r]
             notes.append(f"Surrogates that errored: {failed}")
 
+        # ── Optional: permutation p-value ──────────────────────────────
+        # Null: q is independent of x (row-shuffled across train+test).
+        # Under H0, the best surrogate refit on shuffled q learns nothing
+        # generalisable, so SS_perm ≈ 1. Observed SS lower than this null
+        # tail ⇒ surrogate succeeds with significance.
+        p_value: Optional[float] = None
+        if self.calibrate:
+            perm_rng = np.random.default_rng(self.seed + 1)
+            n_train_local = q_train.shape[0]
+            q_all = np.concatenate([q_train, q_test], axis=0)
+            perm_stats = np.empty(self.n_permutations)
+            for i in range(self.n_permutations):
+                perm = perm_rng.permutation(q_all.shape[0])
+                q_all_s = q_all[perm]
+                q_train_s = q_all_s[:n_train_local]
+                q_test_s = q_all_s[n_train_local:]
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    try:
+                        perm_models = _fit_per_dim(best_spec.build(), Xs_train, q_train_s)
+                        perm_preds = _predict_per_dim(perm_models, Xs_test)
+                        per_dim_r2 = [
+                            max(0.0, float(r2_score(q_test_s[:, d], perm_preds[:, d])))
+                            for d in range(q_test_s.shape[1])
+                        ]
+                        perm_stats[i] = 1.0 - float(np.mean(per_dim_r2))
+                    except Exception:
+                        perm_stats[i] = 1.0
+            # Lower-tail p-value (Davison-Hinkley): how often does the
+            # shuffled-q null produce SS ≤ the observed SS?
+            p_value = float(
+                (1 + int(np.sum(perm_stats <= headline_ss)))
+                / (1 + self.n_permutations)
+            )
+
         return ProbeResult(
             probe_name=self.name,
             primary_score=float(headline_ss),
@@ -245,4 +299,5 @@ class SurrogationProbe(Probe):
             },
             config=self.config,
             notes=notes,
+            p_value=p_value,
         )

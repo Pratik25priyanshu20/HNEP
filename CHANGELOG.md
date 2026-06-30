@@ -5,6 +5,99 @@ All notable changes to HNEP are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-06-30
+
+Methodology hardening release. Replaces inspected thresholds with empirically-
+calibrated CI-aware ones, ships a ground-truth synthetic benchmark, adds
+cluster-aware block bootstrap with headline-aligned CIs, surfaces per-
+evaluation permutation p-values, and documents the SS/Δ asymmetry in
+permutation testing. 60-cell verdict accuracy: **100%**; per-seed CI
+coverage: **SS 100%, Δ 96%** (Reg/DW/Ig × 15 seeds, n=400 vs n=2000 truth).
+
+### Added — Ground-truth benchmark suite
+- `hnep.benchmarks` subpackage with six archetypal synthetic hybrids
+  (`make_genuine` / `make_regularizer` / `make_ignored` / `make_dead_weight`
+  / `make_inconclusive` / `make_adversarial`) and known QCT verdicts.
+- `run_ground_truth_benchmark()` returns a `BenchmarkReport` with overall
+  accuracy, per-archetype accuracy, confusion matrix, and misclassified runs.
+- Archetype constructors draw all population parameters (W_c, W_q, β_q,
+  β_c, RFF basis) BEFORE the sample realisation, so the same `seed`
+  produces the same population regardless of `n_samples`. This makes
+  per-seed coverage diagnostics — CI@n=400 vs truth@n=2000 — honest.
+- Archetypes carry NISQ-style observation noise on the quantum output table
+  (σ=0.25) so the SS distribution on linear-q archetypes isn't degenerate;
+  Ignored / Dead Weight β_q is small-but-non-zero for the same reason on the
+  Δ side. Archetypes ship random cluster IDs (k=10) so the suite exercises
+  the block-bootstrap path.
+
+### Added — Empirically-calibrated thresholds
+- `Thresholds.from_calibration()` loads thresholds derived from the
+  benchmark's known-archetype seeds; `Thresholds.legacy()` keeps the v0.1
+  values (SS<0.20, Δ≥0.05) available.
+- `DEFAULT_THRESHOLDS` now sources from the calibrated JSON shipped in the
+  wheel (`hnep/thresholds_calibration.json`). Current values: SS<0.099,
+  Δ≥0.055.
+- `scripts/recalibrate_thresholds.py` regenerates the JSON deterministically
+  from the **99th percentile of bootstrap-CI upper bounds** on the
+  calibration archetypes (Regularizer / Dead Weight for SS, Ignored / Dead
+  Weight for Δ). CI-upper-bound calibration is verdict-stable by
+  construction: calibration seeds' CIs stay strictly on the
+  REPLACEABLE / NOT-LOAD-BEARING side of threshold.
+
+### Added — Cluster (block) bootstrap
+- `Dataset.cluster_ids: Optional[np.ndarray]` — per-sample integer cluster
+  labels (e.g. molecular scaffold IDs). Defaults to `None` so existing
+  adapters keep their v0.2 i.i.d. behaviour.
+- `bootstrap_ci()` and `bootstrap_statistic_ci()` accept a new
+  `cluster_ids` kwarg. When supplied, the resampling unit is the cluster
+  rather than the individual sample — correct CIs on within-cluster-
+  correlated data. `cluster_ids=None` is bit-identical to the v0.2
+  implementation (same rng → same numerical result).
+- `SurrogationProbe` and `InterventionProbe` automatically pass
+  `dataset.cluster_ids` through to the bootstrap when available.
+
+### Added — Per-evaluation permutation p-values
+- `SurrogationProbe(calibrate=True)` ships a true permutation p-value
+  (lower-tail, against the shuffled-q null which makes q independent of
+  x → surrogate R² → 0 → SS_perm → 1). Low p ⇒ observed SS is
+  significantly below null ⇒ surrogate succeeds with significance.
+- `QCTClassifier(use_p_values=True)` gates the REPLACEABLE direction on
+  the surrogation p-value: a REGULARIZER / DEAD_WEIGHT verdict requires
+  `surrogation.p_value < 0.05`; otherwise the verdict falls back to
+  Inconclusive.
+- `ProbeResult.p_value: Optional[float]` exposes the value; `None` when
+  the probe was constructed without `calibrate=True`.
+
+### Permutation tests — asymmetry between SS and Δ
+- `InterventionProbe(calibrate=True)` is deliberately **not** a p-value.
+  The per-row-shuffle null doesn't sample "β_q = 0" cleanly — the model's
+  trained β_q stays fixed, so a shuffled q gets the decoder to follow
+  wrong-but-confident information into wrong predictions, which is
+  strictly worse than zero-q for any model that genuinely uses q.
+  Δ_perm ≥ Δ_obs reliably and a tail probability would not carry the
+  standard reject-H0 semantics. Instead we expose a descriptive
+  `delta_shuffle_consistency = mean(Δ_perm) − Δ_obs` in `result.details`
+  — positive when shuffled-q is worse than zero-q, i.e. when the model
+  depends on q's specific values. The QCT classifier does not consume it.
+
+### Changed — SurrogationProbe bootstrap CI now headline-aligned
+- The bootstrap CI now computes the headline statistic
+  `1 − mean_d(max(0, R²_d))` per iteration, not the v0.2 closed-form
+  proxy `mean(MSE_per_sample) / mean_d(Var(q_d))`. The proxy had a
+  per-dim-denominator mismatch with the headline; aligning the two
+  removes one bias source for free. Per-seed coverage on n=400 vs n=2000
+  truth: SS = 100% / 100% / 100% across Reg / DW / Ig (15 seeds each).
+
+### Chore
+- `pyproject.toml` `[tool.pytest.ini_options]` ignores five pre-v0.1
+  cruft tests (`test_quantum_circuits.py`, `test_models.py`,
+  `test_classical_model.py`, `test_data_loaders.py`, `test_training.py`)
+  that import from a parent-project `src.*` module no longer present.
+- `scripts/sanity_check_esol.py` exercises HNEP on real chemistry data
+  (the ESOL extraction from the parent thesis repo); first-cut verdict on
+  the precomputed extractions is Inconclusive (SS CI straddles threshold;
+  Δ cleanly load-bearing).
+
 ## [0.2.0] — 2026-06-28
 
 Second release. Expands HNEP from two probes to **six**, adds two visualisations

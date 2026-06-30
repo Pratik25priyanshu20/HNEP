@@ -33,6 +33,12 @@ class Dataset:
         identifiers (e.g. SMILES), per-sample descriptors, etc. HNEP never
         reads required information from here; it is for the user's benefit and
         for nicer reports.
+    cluster_ids
+        Optional per-sample integer cluster labels (e.g. molecular scaffold
+        IDs). When supplied, bootstrap-based probes resample whole clusters
+        rather than individual samples, which gives correctly-sized CIs on
+        within-cluster-correlated data (block / cluster bootstrap). ``None``
+        keeps the v0.1/v0.2 i.i.d. bootstrap behaviour.
     """
 
     inputs: np.ndarray
@@ -41,6 +47,7 @@ class Dataset:
     val_idx: np.ndarray
     test_idx: np.ndarray
     metadata: Dict[str, Any] = field(default_factory=dict)
+    cluster_ids: Optional[np.ndarray] = None
 
 
 class ModelInterface(ABC):

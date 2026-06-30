@@ -19,7 +19,7 @@ See the README and the examples/ directory for more.
 from __future__ import annotations
 
 # Version (kept in sync with pyproject.toml)
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Top-level public API — populated as Phase 2/3 lands
 from hnep.api import evaluate
