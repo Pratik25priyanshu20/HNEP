@@ -9,7 +9,7 @@
 > **Does the quantum component in your hybrid model actually contribute meaningful computation, or could a classical surrogate replace it?**
 
 Most QML benchmarks report end-task accuracy and call it a day.
-**HNEP applies multiple independent probes** to your trained hybrid model — surrogation, structural intervention, error diversity, representation analysis — and returns a verdict you can defend.
+**HNEP applies multiple independent probes** to your trained hybrid model — surrogation, structural intervention, representation analysis, plus diagnostic probes (error diversity, noise, temporal) — and returns a verdict you can defend.
 
 ---
 
@@ -107,8 +107,17 @@ See [`hnep/examples/`](hnep/examples) for runnable examples of each.
 | `InterventionProbe` | Does removing the quantum branch hurt performance? |
 | `NoiseProbe` | Is the verdict stable under realistic quantum noise? |
 | `TemporalProbe` | Does the verdict change across training checkpoints? |
-| `ErrorDiversityProbe` | Do quantum and classical branches err on the same molecules? |
+| `ErrorDiversityProbe` *(diagnostic only — see note below)* | Do quantum and classical branches err on the same molecules? |
 | `RepresentationProbe` | CKA + mutual information — which embedding is more target-aligned? |
+
+> **`ErrorDiversityProbe` is diagnostic-only.** It does not gate the QCT
+> verdict; `QCTClassifier` consumes only `SurrogationProbe` + `InterventionProbe`.
+> Both ED readouts are Ridge linear models, so on hybrids whose quantum branch
+> encodes non-linear information the residuals can correlate spuriously and
+> produce a misleading REDUNDANT verdict. The probe surfaces a
+> `low_readout_strength` flag in `details` (fires when `min(R²_q, R²_c) < 0.4`)
+> — treat any REDUNDANT verdict under that flag as Inconclusive. A
+> non-linear readout ladder is on the roadmap.
 
 **Killer outputs**
 

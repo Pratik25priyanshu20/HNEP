@@ -1,6 +1,26 @@
 """ErrorDiversityProbe — measure whether quantum and classical branches make
 different mistakes.
 
+**DIAGNOSTIC ONLY — not used for QCT verdict gating.**
+``QCTClassifier`` consumes ``SurrogationProbe`` + ``InterventionProbe`` only.
+The verdict from this probe is descriptive evidence for users who want to
+inspect whether the two branches err on the same molecules, but it is not
+load-bearing for any HNEP verdict.
+
+Why this is diagnostic-only
+---------------------------
+Both readouts are **Ridge linear regressions**. When the quantum branch
+encodes a non-linear function of the input, Ridge fails to extract it from
+either branch — both readouts produce residuals that contain the same
+un-modelled non-linear signal, those residuals correlate strongly, and the
+verdict collapses to a spurious ``REDUNDANT``. The ``low_readout_strength``
+flag in ``details`` fires when ``min(R²_q, R²_c) < 0.4`` exactly to surface
+this failure mode: at that point the correlation reflects readout failure
+rather than true ensemble redundancy. Treat any REDUNDANT verdict under
+``low_readout_strength = True`` as Inconclusive.
+
+Method
+------
 Ensemble-theory perspective on quantum's role. We fit two simple readouts:
 
   * Quantum-only Ridge: ``quantum_output → target``
@@ -11,10 +31,11 @@ them. Low correlation → the branches make different mistakes → potential
 ensemble benefit. High correlation → they make the same mistakes → quantum
 adds nothing new at the error level.
 
-This is the probe that revealed the QM9 paradox in the thesis: quantum's
-output is informationally unique (high SS) but its errors are highly
-correlated with the GNN-only readout's errors (REDUNDANT) — *quantum carries
-unique information that doesn't translate to different predictions.*
+This is the probe that surfaced the QM9 paradox in the thesis: quantum's
+output is informationally unique (high SS) but its Ridge-readout errors are
+highly correlated with the GNN-only Ridge-readout's errors. Per the
+caveat above, we don't yet know if that disagreement is real or a Ridge
+artifact.
 
 Requires the adapter to implement ``get_classical_embedding``. Adapters that
 don't will get an honest ``UNAVAILABLE`` verdict.
@@ -37,10 +58,15 @@ from hnep.results.probe_result import ProbeResult
 
 # Threshold above which we call the two branches "redundant"
 DEFAULT_REDUNDANCY_THRESHOLD = 0.5
+# Minimum chosen-readout R²: below this, the Ridge readouts are too weak
+# for the residual correlation to be trustworthy as a redundancy signal.
+DEFAULT_LOW_READOUT_STRENGTH = 0.4
 
 
 class ErrorDiversityProbe(Probe):
     """Pearson correlation between quantum-only and classical-only readout errors.
+
+    DIAGNOSTIC ONLY — see module docstring.
 
     Parameters
     ----------
@@ -48,24 +74,32 @@ class ErrorDiversityProbe(Probe):
         |r| above this is classified as REDUNDANT, below as DIVERSE.
     ridge_alpha
         L2 regularisation for both readouts.
+    low_readout_strength_threshold
+        If either readout's test R² falls below this floor, ``details``
+        flags ``low_readout_strength = True`` and a caveat note is added
+        to the result. Below this floor the residual correlation reflects
+        readout failure rather than true ensemble redundancy.
     """
 
     name = "error_diversity"
-    description = "Residual correlation between quantum-only and classical-only readouts."
+    description = "Residual correlation between quantum-only and classical-only Ridge readouts (diagnostic only)."
 
     def __init__(
         self,
         redundancy_threshold: float = DEFAULT_REDUNDANCY_THRESHOLD,
         ridge_alpha: float = 1.0,
+        low_readout_strength_threshold: float = DEFAULT_LOW_READOUT_STRENGTH,
         seed: int = 42,
     ) -> None:
         super().__init__(seed=seed)
         self.redundancy_threshold = redundancy_threshold
         self.ridge_alpha = ridge_alpha
+        self.low_readout_strength_threshold = low_readout_strength_threshold
         self._config = {
             "seed": seed,
             "readout": f"Ridge(alpha={ridge_alpha})",
             "redundancy_threshold": redundancy_threshold,
+            "low_readout_strength_threshold": low_readout_strength_threshold,
         }
 
     def run(
@@ -134,6 +168,10 @@ class ErrorDiversityProbe(Probe):
         q_only_r2 = float(r2_score(y_test, q_pred))
         cl_only_r2 = float(r2_score(y_test, cl_pred))
 
+        low_readout_strength = bool(
+            min(q_only_r2, cl_only_r2) < self.low_readout_strength_threshold
+        )
+
         # Confidence based on distance from threshold
         distance = abs(abs(r) - self.redundancy_threshold)
         confidence = float(min(1.0, distance * 2 + 0.5))
@@ -144,6 +182,15 @@ class ErrorDiversityProbe(Probe):
                 "Quantum-only Ridge has negative R² — quantum branch alone "
                 "doesn't predict the target. Error diversity verdict still "
                 "informative but interpret per-branch R² with care."
+            )
+        if low_readout_strength:
+            notes.append(
+                f"low_readout_strength: min(R²_q, R²_c) = "
+                f"{min(q_only_r2, cl_only_r2):.2f} < "
+                f"{self.low_readout_strength_threshold:.2f}. The residual "
+                "correlation may reflect Ridge-readout failure rather than "
+                "true ensemble redundancy; treat any REDUNDANT verdict as "
+                "Inconclusive in this regime."
             )
 
         return ProbeResult(
@@ -156,6 +203,7 @@ class ErrorDiversityProbe(Probe):
                 "error_correlation": float(r),
                 "quantum_only_r2": q_only_r2,
                 "classical_only_r2": cl_only_r2,
+                "low_readout_strength": low_readout_strength,
                 "n_test": int(len(test_idx)),
                 "redundancy_threshold": self.redundancy_threshold,
             },

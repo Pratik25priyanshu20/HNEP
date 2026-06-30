@@ -1,0 +1,894 @@
+{
+  "hnep_version": "0.3.0",
+  "thresholds": {
+    "ss_replaceable": 0.09910743969214181,
+    "intervention_load_bearing": 0.05522061680925855
+  },
+  "results": [
+    {
+      "dataset": "ESOL",
+      "qct_verdict": "Inconclusive",
+      "surrogation": {
+        "probe_name": "surrogation",
+        "primary_score": 0.0748580896891966,
+        "primary_score_ci": [
+          0.0396958888852529,
+          0.12961866478284728
+        ],
+        "verdict": "REPLACEABLE",
+        "confidence": 0.4,
+        "details": {
+          "best_surrogate": "Gradient Boosting",
+          "best_surrogate_family": "tree",
+          "per_surrogate": [
+            {
+              "name": "Linear (Ridge)",
+              "family": "linear",
+              "surrogation_score": 0.19648870705173682,
+              "per_dim_r2": [
+                0.9235487031132465,
+                0.7575665694657989,
+                0.7278303395577906,
+                0.8050995596562167
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "KNN (k=5)",
+              "family": "instance",
+              "surrogation_score": 0.11867593919645059,
+              "per_dim_r2": [
+                0.9327383921165686,
+                0.8289541523816597,
+                0.884271332478442,
+                0.8793323662375273
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Random Forest",
+              "family": "tree",
+              "surrogation_score": 0.08179169676864151,
+              "per_dim_r2": [
+                0.9596021988700022,
+                0.8703186223076912,
+                0.9416859353339486,
+                0.901226456413792
+              ],
+              "succeeded": true
+            },
+            {
+              "name": "Gradient Boosting",
+              "family": "tree",
+              "surrogation_score": 0.0748580896891966,
+              "per_dim_r2": [
+                0.9590583200102499,
+                0.8620438390490168,
+                0.9579761721082003,
+                0.9214893100757469
+              ],
+              "succeeded": true
+            },
+            {
+              "name": "Small MLP (32)",
+              "family": "neural",
+              "surrogation_score": 0.9005118674585604,
+              "per_dim_r2": [
+                -0.4916649181679136,
+                0.2406191803716783,
+                -0.9949621588907942,
+                0.15733334979407998
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Medium MLP (64, 64)",
+              "family": "neural",
+              "surrogation_score": 0.4276744823087597,
+              "per_dim_r2": [
+                0.546946837976185,
+                0.623453137813867,
+                0.4571732878895247,
+                0.6617288070853844
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Large MLP (128, 128, 64)",
+              "family": "neural",
+              "surrogation_score": 0.19018352247979475,
+              "per_dim_r2": [
+                0.821478861538725,
+                0.8981603126937967,
+                0.6140228081068724,
+                0.9056039277414272
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Deep MLP (256, 128, 64, 32)",
+              "family": "neural",
+              "surrogation_score": 0.18696610888504095,
+              "per_dim_r2": [
+                0.7691451122871649,
+                0.8435834724764562,
+                0.7184205627576097,
+                0.9209864169386055
+              ],
+              "succeeded": false
+            }
+          ],
+          "n_surrogates_succeeded": 2,
+          "n_surrogates": 8,
+          "elapsed_seconds": 10.002
+        },
+        "config": {
+          "seed": 42,
+          "surrogates": [
+            "Linear (Ridge)",
+            "KNN (k=5)",
+            "Random Forest",
+            "Gradient Boosting",
+            "Small MLP (32)",
+            "Medium MLP (64, 64)",
+            "Large MLP (128, 128, 64)",
+            "Deep MLP (256, 128, 64, 32)"
+          ],
+          "n_bootstrap": 500,
+          "ss_threshold": 0.09910743969214181,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [],
+        "p_value": null
+      },
+      "intervention": {
+        "probe_name": "intervention",
+        "primary_score": 0.12660366992809682,
+        "primary_score_ci": [
+          0.08233976369661548,
+          0.17461733478721822
+        ],
+        "verdict": "LOAD-BEARING",
+        "confidence": 0.9911054684707906,
+        "details": {
+          "headline_intervention": "zero_quantum",
+          "r2_intact": -1.6975460852812527,
+          "per_intervention": {
+            "zero_quantum": {
+              "r2_intervened": -1.482630521012572,
+              "delta_r2": 0.12660366992809682,
+              "is_load_bearing": true
+            },
+            "random_noise": {
+              "r2_intervened": -1.7229152724024086,
+              "delta_r2": -0.014944623501607418,
+              "is_load_bearing": false
+            },
+            "permute": {
+              "r2_intervened": -1.7551345523047228,
+              "delta_r2": -0.033924538204174126,
+              "is_load_bearing": false
+            },
+            "constant": {
+              "r2_intervened": -1.7388731915508755,
+              "delta_r2": -0.024345204308709897,
+              "is_load_bearing": false
+            }
+          },
+          "intervention_disagreement": 0.16052820813227095,
+          "elapsed_seconds": 0.18
+        },
+        "config": {
+          "seed": 42,
+          "interventions": [
+            "zero_quantum",
+            "random_noise",
+            "permute",
+            "constant"
+          ],
+          "noise_scale": 1.0,
+          "n_bootstrap": 500,
+          "load_threshold": 0.05522061680925855,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [
+          "Large inter-intervention disagreement (\u0394 range = 0.16). Consider inspecting per-intervention results."
+        ],
+        "p_value": null
+      },
+      "error_diversity": {
+        "probe_name": "error_diversity",
+        "primary_score": 0.3384748051067285,
+        "primary_score_ci": null,
+        "verdict": "DIVERSE",
+        "confidence": 0.823050389786543,
+        "details": {
+          "error_correlation": 0.3384748051067285,
+          "quantum_only_r2": 0.029046117236251834,
+          "classical_only_r2": 0.8436969427772736,
+          "low_readout_strength": true,
+          "n_test": 100,
+          "redundancy_threshold": 0.5,
+          "elapsed_seconds": 0.003
+        },
+        "config": {
+          "seed": 42,
+          "readout": "Ridge(alpha=1.0)",
+          "redundancy_threshold": 0.5,
+          "low_readout_strength_threshold": 0.4
+        },
+        "notes": [
+          "low_readout_strength: min(R\u00b2_q, R\u00b2_c) = 0.03 < 0.40. The residual correlation may reflect Ridge-readout failure rather than true ensemble redundancy; treat any REDUNDANT verdict as Inconclusive in this regime."
+        ],
+        "p_value": null
+      },
+      "ridge_decoder_r2_test": 0.9270443563971298
+    },
+    {
+      "dataset": "FreeSolv",
+      "qct_verdict": "Ignored",
+      "surrogation": {
+        "probe_name": "surrogation",
+        "primary_score": 0.42275285846551447,
+        "primary_score_ci": [
+          0.32899086952228207,
+          0.756700114828271
+        ],
+        "verdict": "NECESSARY",
+        "confidence": 1.0,
+        "details": {
+          "best_surrogate": "Linear (Ridge)",
+          "best_surrogate_family": "linear",
+          "per_surrogate": [
+            {
+              "name": "Linear (Ridge)",
+              "family": "linear",
+              "surrogation_score": 0.42275285846551447,
+              "per_dim_r2": [
+                0.47694657370004434,
+                0.7150637298719977,
+                0.5465364584090633,
+                0.5704418041568371
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "KNN (k=5)",
+              "family": "instance",
+              "surrogation_score": 0.47908196148312043,
+              "per_dim_r2": [
+                0.5108426470806839,
+                0.6489677436429979,
+                0.4399950308110694,
+                0.4838667325327669
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Random Forest",
+              "family": "tree",
+              "surrogation_score": 0.5520807638376706,
+              "per_dim_r2": [
+                0.45574125172488167,
+                0.5327144714815497,
+                0.4175805232796922,
+                0.385640698163194
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Gradient Boosting",
+              "family": "tree",
+              "surrogation_score": 0.4795360235403877,
+              "per_dim_r2": [
+                0.518334467047342,
+                0.5897349377284034,
+                0.4990187656791457,
+                0.4747677353835579
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Small MLP (32)",
+              "family": "neural",
+              "surrogation_score": 1.0,
+              "per_dim_r2": [
+                -7.2836465527292305,
+                -2.2352661343354923,
+                -11.6932106589674,
+                -5.129224652219091
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Medium MLP (64, 64)",
+              "family": "neural",
+              "surrogation_score": 1.0,
+              "per_dim_r2": [
+                -0.8134388720720065,
+                -0.0185106173433629,
+                -0.7409428907850717,
+                -0.7903772589745033
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Large MLP (128, 128, 64)",
+              "family": "neural",
+              "surrogation_score": 0.8262991167508434,
+              "per_dim_r2": [
+                -0.2653861328043119,
+                0.25289493202734037,
+                0.27743083380407596,
+                0.1644777671652098
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Deep MLP (256, 128, 64, 32)",
+              "family": "neural",
+              "surrogation_score": 0.6863384231937391,
+              "per_dim_r2": [
+                0.3471539555383797,
+                0.5295971277379421,
+                0.022921075334564556,
+                0.35497414861415744
+              ],
+              "succeeded": false
+            }
+          ],
+          "n_surrogates_succeeded": 0,
+          "n_surrogates": 8,
+          "elapsed_seconds": 4.427
+        },
+        "config": {
+          "seed": 42,
+          "surrogates": [
+            "Linear (Ridge)",
+            "KNN (k=5)",
+            "Random Forest",
+            "Gradient Boosting",
+            "Small MLP (32)",
+            "Medium MLP (64, 64)",
+            "Large MLP (128, 128, 64)",
+            "Deep MLP (256, 128, 64, 32)"
+          ],
+          "n_bootstrap": 500,
+          "ss_threshold": 0.09910743969214181,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [],
+        "p_value": null
+      },
+      "intervention": {
+        "probe_name": "intervention",
+        "primary_score": -0.8721670760044086,
+        "primary_score_ci": [
+          -1.841661299918582,
+          -0.5486076490711129
+        ],
+        "verdict": "NOT-LOAD-BEARING",
+        "confidence": 1.0,
+        "details": {
+          "headline_intervention": "zero_quantum",
+          "r2_intact": -0.5178576935080859,
+          "per_intervention": {
+            "zero_quantum": {
+              "r2_intervened": -0.9695161238414203,
+              "delta_r2": -0.8721670760044086,
+              "is_load_bearing": false
+            },
+            "random_noise": {
+              "r2_intervened": -0.9402432428937697,
+              "delta_r2": -0.8156401935913089,
+              "is_load_bearing": false
+            },
+            "permute": {
+              "r2_intervened": -0.5007087017813128,
+              "delta_r2": 0.03311525915662644,
+              "is_load_bearing": false
+            },
+            "constant": {
+              "r2_intervened": -0.49836487877840896,
+              "delta_r2": 0.037641257384105155,
+              "is_load_bearing": false
+            }
+          },
+          "intervention_disagreement": 0.9098083333885137,
+          "elapsed_seconds": 0.17
+        },
+        "config": {
+          "seed": 42,
+          "interventions": [
+            "zero_quantum",
+            "random_noise",
+            "permute",
+            "constant"
+          ],
+          "noise_scale": 1.0,
+          "n_bootstrap": 500,
+          "load_threshold": 0.05522061680925855,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [
+          "Large inter-intervention disagreement (\u0394 range = 0.91). Consider inspecting per-intervention results."
+        ],
+        "p_value": null
+      },
+      "error_diversity": {
+        "probe_name": "error_diversity",
+        "primary_score": 0.4282612199743323,
+        "primary_score_ci": null,
+        "verdict": "DIVERSE",
+        "confidence": 0.6434775600513354,
+        "details": {
+          "error_correlation": 0.4282612199743323,
+          "quantum_only_r2": 0.07920297270566423,
+          "classical_only_r2": 0.5262539302845686,
+          "low_readout_strength": true,
+          "n_test": 65,
+          "redundancy_threshold": 0.5,
+          "elapsed_seconds": 0.006
+        },
+        "config": {
+          "seed": 42,
+          "readout": "Ridge(alpha=1.0)",
+          "redundancy_threshold": 0.5,
+          "low_readout_strength_threshold": 0.4
+        },
+        "notes": [
+          "low_readout_strength: min(R\u00b2_q, R\u00b2_c) = 0.08 < 0.40. The residual correlation may reflect Ridge-readout failure rather than true ensemble redundancy; treat any REDUNDANT verdict as Inconclusive in this regime."
+        ],
+        "p_value": null
+      },
+      "ridge_decoder_r2_test": 0.9616499279139822
+    },
+    {
+      "dataset": "QM9",
+      "qct_verdict": "Ignored",
+      "surrogation": {
+        "probe_name": "surrogation",
+        "primary_score": 0.2698220686763684,
+        "primary_score_ci": [
+          0.19604201186082015,
+          0.37111991204719474
+        ],
+        "verdict": "NECESSARY",
+        "confidence": 1.0,
+        "details": {
+          "best_surrogate": "Gradient Boosting",
+          "best_surrogate_family": "tree",
+          "per_surrogate": [
+            {
+              "name": "Linear (Ridge)",
+              "family": "linear",
+              "surrogation_score": 0.3947697308572402,
+              "per_dim_r2": [
+                0.7514632679068746,
+                0.532185893812236,
+                0.5891749850402043,
+                0.5480969298117242
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "KNN (k=5)",
+              "family": "instance",
+              "surrogation_score": 0.4678142122253648,
+              "per_dim_r2": [
+                0.6573738514024972,
+                0.4901051755648035,
+                0.49102178980822964,
+                0.4902423343230107
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Random Forest",
+              "family": "tree",
+              "surrogation_score": 0.3078938259505912,
+              "per_dim_r2": [
+                0.7085062636722304,
+                0.6819935960217859,
+                0.6846506441450866,
+                0.6932741923585323
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Gradient Boosting",
+              "family": "tree",
+              "surrogation_score": 0.2698220686763684,
+              "per_dim_r2": [
+                0.7602287927652625,
+                0.7374455016101469,
+                0.7202572596002715,
+                0.7027801713188457
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Small MLP (32)",
+              "family": "neural",
+              "surrogation_score": 0.9649195250895195,
+              "per_dim_r2": [
+                -0.2557370320255159,
+                0.017592826479374102,
+                0.01414560856656788,
+                0.10858346459598012
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Medium MLP (64, 64)",
+              "family": "neural",
+              "surrogation_score": 0.5434025649451593,
+              "per_dim_r2": [
+                0.538984428323525,
+                0.553568721519313,
+                0.46048762431309365,
+                0.2733489660634312
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Large MLP (128, 128, 64)",
+              "family": "neural",
+              "surrogation_score": 0.5237106229702686,
+              "per_dim_r2": [
+                0.5486365284483288,
+                0.553536273082897,
+                0.5103479804796375,
+                0.29263672610806224
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Deep MLP (256, 128, 64, 32)",
+              "family": "neural",
+              "surrogation_score": 0.386306737360287,
+              "per_dim_r2": [
+                0.7014008867384975,
+                0.6027374772298416,
+                0.6073801633037064,
+                0.5432545232868067
+              ],
+              "succeeded": false
+            }
+          ],
+          "n_surrogates_succeeded": 0,
+          "n_surrogates": 8,
+          "elapsed_seconds": 11.135
+        },
+        "config": {
+          "seed": 42,
+          "surrogates": [
+            "Linear (Ridge)",
+            "KNN (k=5)",
+            "Random Forest",
+            "Gradient Boosting",
+            "Small MLP (32)",
+            "Medium MLP (64, 64)",
+            "Large MLP (128, 128, 64)",
+            "Deep MLP (256, 128, 64, 32)"
+          ],
+          "n_bootstrap": 500,
+          "ss_threshold": 0.09910743969214181,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [],
+        "p_value": null
+      },
+      "intervention": {
+        "probe_name": "intervention",
+        "primary_score": -0.28839468028985604,
+        "primary_score_ci": [
+          -0.3361902464547745,
+          -0.2340679888206141
+        ],
+        "verdict": "NOT-LOAD-BEARING",
+        "confidence": 1.0,
+        "details": {
+          "headline_intervention": "zero_quantum",
+          "r2_intact": -3.5754103562680077,
+          "per_intervention": {
+            "zero_quantum": {
+              "r2_intervened": -4.60653968286896,
+              "delta_r2": -0.28839468028985604,
+              "is_load_bearing": false
+            },
+            "random_noise": {
+              "r2_intervened": -5.1701444791383535,
+              "delta_r2": -0.446028277586274,
+              "is_load_bearing": false
+            },
+            "permute": {
+              "r2_intervened": -3.708746599758479,
+              "delta_r2": -0.037292570699394297,
+              "is_load_bearing": false
+            },
+            "constant": {
+              "r2_intervened": -3.716436856128797,
+              "delta_r2": -0.039443444474438434,
+              "is_load_bearing": false
+            }
+          },
+          "intervention_disagreement": 0.4087357068868797,
+          "elapsed_seconds": 0.172
+        },
+        "config": {
+          "seed": 42,
+          "interventions": [
+            "zero_quantum",
+            "random_noise",
+            "permute",
+            "constant"
+          ],
+          "noise_scale": 1.0,
+          "n_bootstrap": 500,
+          "load_threshold": 0.05522061680925855,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [
+          "Large inter-intervention disagreement (\u0394 range = 0.41). Consider inspecting per-intervention results."
+        ],
+        "p_value": null
+      },
+      "error_diversity": {
+        "probe_name": "error_diversity",
+        "primary_score": 0.8009903910024451,
+        "primary_score_ci": null,
+        "verdict": "REDUNDANT",
+        "confidence": 1.0,
+        "details": {
+          "error_correlation": 0.8009903910024451,
+          "quantum_only_r2": 0.33263283333474847,
+          "classical_only_r2": 0.16352264772911818,
+          "low_readout_strength": true,
+          "n_test": 100,
+          "redundancy_threshold": 0.5,
+          "elapsed_seconds": 0.003
+        },
+        "config": {
+          "seed": 42,
+          "readout": "Ridge(alpha=1.0)",
+          "redundancy_threshold": 0.5,
+          "low_readout_strength_threshold": 0.4
+        },
+        "notes": [
+          "low_readout_strength: min(R\u00b2_q, R\u00b2_c) = 0.16 < 0.40. The residual correlation may reflect Ridge-readout failure rather than true ensemble redundancy; treat any REDUNDANT verdict as Inconclusive in this regime."
+        ],
+        "p_value": null
+      },
+      "ridge_decoder_r2_test": 0.9530472700803228
+    },
+    {
+      "dataset": "Lipo",
+      "qct_verdict": "Inconclusive",
+      "surrogation": {
+        "probe_name": "surrogation",
+        "primary_score": 0.1022351533985687,
+        "primary_score_ci": [
+          0.07686675281986333,
+          0.1430813146107866
+        ],
+        "verdict": "NECESSARY",
+        "confidence": 0.4,
+        "details": {
+          "best_surrogate": "Gradient Boosting",
+          "best_surrogate_family": "tree",
+          "per_surrogate": [
+            {
+              "name": "Linear (Ridge)",
+              "family": "linear",
+              "surrogation_score": 0.27171098634481217,
+              "per_dim_r2": [
+                0.6478880714628252,
+                0.8472757457195356,
+                0.5740202273067253,
+                0.8439720101316653
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "KNN (k=5)",
+              "family": "instance",
+              "surrogation_score": 0.18046402730923006,
+              "per_dim_r2": [
+                0.7071230830155094,
+                0.8903200983978851,
+                0.7901300849122866,
+                0.8905706244373987
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Random Forest",
+              "family": "tree",
+              "surrogation_score": 0.10959663065072789,
+              "per_dim_r2": [
+                0.8046377361512813,
+                0.9433704184101518,
+                0.8691468400215003,
+                0.9444584828141547
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Gradient Boosting",
+              "family": "tree",
+              "surrogation_score": 0.1022351533985687,
+              "per_dim_r2": [
+                0.8013383358644409,
+                0.9458398816751953,
+                0.8933655496925647,
+                0.9505156191735243
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Small MLP (32)",
+              "family": "neural",
+              "surrogation_score": 0.9725744589447718,
+              "per_dim_r2": [
+                -1.1323142214726176,
+                0.10970216422091272,
+                -0.20290097600142687,
+                -0.06729683583002966
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Medium MLP (64, 64)",
+              "family": "neural",
+              "surrogation_score": 0.43657602651787797,
+              "per_dim_r2": [
+                0.21136775129698882,
+                0.8333126174591957,
+                0.38543992616113043,
+                0.8235755990111728
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Large MLP (128, 128, 64)",
+              "family": "neural",
+              "surrogation_score": 0.2829355567222973,
+              "per_dim_r2": [
+                0.5022325131621492,
+                0.850562217882431,
+                0.6986167588743022,
+                0.8168462831919286
+              ],
+              "succeeded": false
+            },
+            {
+              "name": "Deep MLP (256, 128, 64, 32)",
+              "family": "neural",
+              "surrogation_score": 0.19623772313398313,
+              "per_dim_r2": [
+                0.5808849875383757,
+                0.9213854938043763,
+                0.7860025744574195,
+                0.9267760516638959
+              ],
+              "succeeded": false
+            }
+          ],
+          "n_surrogates_succeeded": 0,
+          "n_surrogates": 8,
+          "elapsed_seconds": 10.848
+        },
+        "config": {
+          "seed": 42,
+          "surrogates": [
+            "Linear (Ridge)",
+            "KNN (k=5)",
+            "Random Forest",
+            "Gradient Boosting",
+            "Small MLP (32)",
+            "Medium MLP (64, 64)",
+            "Large MLP (128, 128, 64)",
+            "Deep MLP (256, 128, 64, 32)"
+          ],
+          "n_bootstrap": 500,
+          "ss_threshold": 0.09910743969214181,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [],
+        "p_value": null
+      },
+      "intervention": {
+        "probe_name": "intervention",
+        "primary_score": -0.09483484794494577,
+        "primary_score_ci": [
+          -0.16615067753196053,
+          -0.030141411704578288
+        ],
+        "verdict": "NOT-LOAD-BEARING",
+        "confidence": 1.0,
+        "details": {
+          "headline_intervention": "zero_quantum",
+          "r2_intact": -2.705714581171887,
+          "per_intervention": {
+            "zero_quantum": {
+              "r2_intervened": -2.9623106120597456,
+              "delta_r2": -0.09483484794494577,
+              "is_load_bearing": false
+            },
+            "random_noise": {
+              "r2_intervened": -3.1113822992173725,
+              "delta_r2": -0.14992997445790623,
+              "is_load_bearing": false
+            },
+            "permute": {
+              "r2_intervened": -2.861671009240559,
+              "delta_r2": -0.057639645051225125,
+              "is_load_bearing": false
+            },
+            "constant": {
+              "r2_intervened": -2.7858052584003787,
+              "delta_r2": -0.029600563853192235,
+              "is_load_bearing": false
+            }
+          },
+          "intervention_disagreement": 0.120329410604714,
+          "elapsed_seconds": 0.178
+        },
+        "config": {
+          "seed": 42,
+          "interventions": [
+            "zero_quantum",
+            "random_noise",
+            "permute",
+            "constant"
+          ],
+          "noise_scale": 1.0,
+          "n_bootstrap": 500,
+          "load_threshold": 0.05522061680925855,
+          "calibrate": false,
+          "n_permutations": 0
+        },
+        "notes": [
+          "Large inter-intervention disagreement (\u0394 range = 0.12). Consider inspecting per-intervention results."
+        ],
+        "p_value": null
+      },
+      "error_diversity": {
+        "probe_name": "error_diversity",
+        "primary_score": 0.8324343428088349,
+        "primary_score_ci": null,
+        "verdict": "REDUNDANT",
+        "confidence": 1.0,
+        "details": {
+          "error_correlation": 0.8324343428088349,
+          "quantum_only_r2": 0.22211370379405204,
+          "classical_only_r2": 0.4435852304744755,
+          "low_readout_strength": true,
+          "n_test": 100,
+          "redundancy_threshold": 0.5,
+          "elapsed_seconds": 0.003
+        },
+        "config": {
+          "seed": 42,
+          "readout": "Ridge(alpha=1.0)",
+          "redundancy_threshold": 0.5,
+          "low_readout_strength_threshold": 0.4
+        },
+        "notes": [
+          "low_readout_strength: min(R\u00b2_q, R\u00b2_c) = 0.22 < 0.40. The residual correlation may reflect Ridge-readout failure rather than true ensemble redundancy; treat any REDUNDANT verdict as Inconclusive in this regime."
+        ],
+        "p_value": null
+      },
+      "ridge_decoder_r2_test": 0.8857339883808149
+    }
+  ],
+  "timestamp_utc": "2026-06-30T21:22:52.101185+00:00"
+}
