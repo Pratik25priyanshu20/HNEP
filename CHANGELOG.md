@@ -5,6 +5,42 @@ All notable changes to HNEP are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — v0.4 in progress
+
+### Added — Convergent-validity gate on the QCT classifier
+- `QCTClassifier(use_convergent_validity=True)` counts agreement across
+  four signals: SS (surrogation), Δ (intervention), CKA (from the
+  representation probe's `quantum_more_aligned_with_target` flag), and MI
+  (from `quantum_info_share > 0.5`). The base (SS+Δ) verdict is returned
+  when ≥3 of 4 signals agree; otherwise the classifier emits the new
+  `QCTVerdict.DISAGREEMENT` verdict.
+- `QCTClassifier.classify` accepts an optional `representation: ProbeResult`
+  argument. When `use_convergent_validity=False` (the default) or
+  `representation is None` or `representation.verdict == "UNAVAILABLE"`,
+  the gate is skipped and behavior matches v0.3.0.
+- `QCTClassifier.convergent_agreement_min` (default 3) is user-tunable.
+- `QCTVerdict.DISAGREEMENT` = "Disagreement" added to the enum.
+- `ErrorDiversityProbe` is intentionally NOT a classifier input: see
+  the probe's docstring for the readout-failure caveat that keeps it
+  diagnostic-only.
+
+### Added — ErrorDiversityProbe diagnostic framing
+- Module + class docstring updated to state DIAGNOSTIC ONLY status.
+- `details["low_readout_strength"]` flag surfaces when
+  `min(R²_q, R²_c) < low_readout_strength_threshold` (default 0.4).
+  Below that floor, both Ridge readouts are weak and the residual
+  correlation may reflect readout failure rather than true ensemble
+  redundancy — any REDUNDANT verdict should be read as Inconclusive.
+- New constructor arg `low_readout_strength_threshold`.
+- README block explicitly separates ED (diagnostic) from the verdict-
+  gating probes (surrogation + intervention).
+
+### Added — Locked v0.3.0 results on four datasets
+- `scripts/locked_v030_results.py` runs HNEP on the parent thesis repo's
+  precomputed extractions for ESOL / FreeSolv / QM9 / Lipo, using a
+  Ridge readout as a surrogate for the Flax decoder. Report at
+  `docs/v0.3.0_locked_results.md`.
+
 ## [0.3.0] — 2026-06-30
 
 Methodology hardening release. Replaces inspected thresholds with empirically-

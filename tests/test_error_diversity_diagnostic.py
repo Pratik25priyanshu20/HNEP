@@ -97,11 +97,10 @@ def test_ed_low_readout_strength_quiet_on_clean_linear_signal():
 def test_qct_classifier_signature_does_not_take_error_diversity():
     """The QCTClassifier.classify signature must not accept an
     error_diversity argument — gating on ED would silently consume the
-    diagnostic probe."""
+    diagnostic probe. Other inputs (representation, etc.) are allowed."""
     sig = inspect.signature(QCTClassifier.classify)
     param_names = set(sig.parameters.keys())
     assert "error_diversity" not in param_names
-    assert param_names == {"self", "surrogation", "intervention"}
 
 
 def test_evaluate_verdict_unchanged_when_ed_included_or_excluded():
