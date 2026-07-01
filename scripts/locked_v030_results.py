@@ -1,21 +1,28 @@
-"""Locked v0.3.0 results on the four parent-thesis datasets.
+"""Library self-test on the four parent-thesis extractions — NOT thesis reproduction.
 
-Runs HNEP v0.3.0 evaluate on the precomputed (quantum, gnn, predictions)
-extractions for ESOL / FreeSolv / QM9 / Lipo. Produces a Markdown report
-suitable for thesis figures — the numbers in the report are the "locked
-storyline" verdicts under the v0.3.0 methodology (CI-upper-bound calibrated
-thresholds, headline-aligned SS bootstrap, block-bootstrap with cluster_ids
-passthrough).
+============================================================================
+WARNING — read before quoting any number this script produces
+============================================================================
+This script does NOT reproduce the thesis analysis. It measures a different
+quantity and returns different verdicts, sometimes with opposite-sign Δ.
 
-The trained Flax decoder isn't loaded — we substitute a Ridge readout fit on
-``(quantum, gnn) → predictions`` from the extractions. See the report's
-caveat section and ``scripts/sanity_check_esol.py`` for the rationale.
+- Thesis: interventional Δ on the trained Hybrid-V1 Flax decoder — asks
+  "does the *trained* hybrid depend on quantum at inference?"
+- This script: interventional Δ on a *fresh* Ridge readout re-fitted on
+  ``(quantum, gnn) → Flax_predictions`` — asks "does a from-scratch Ridge
+  benefit from quantum features?"
 
-ErrorDiversityProbe is included for diagnostic context (it does not gate the
-QCT verdict). It surfaces the v0.4 ``low_readout_strength`` flag.
+Those two questions have different answers. The Ridge readout is a
+convenience surrogate for the Flax decoder (whose weights live in the
+parent repo and require its model code to load). It lets us exercise the
+HNEP pipeline end-to-end on real molecular data as a library
+reproducibility self-test, but its verdicts are NOT canonical for any
+scientific claim about the hybrid model. For canonical verdicts on ESOL /
+FreeSolv / QM9 / Lipo, run the thesis analysis with the trained decoder.
 
-Usage:
-    python scripts/locked_v030_results.py
+Output labelled ``docs/v0.3.0_library_self_test*`` for exactly this
+reason. Do not rename to imply thesis reproduction.
+============================================================================
 """
 
 from __future__ import annotations
@@ -132,10 +139,10 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--report-path",
         type=Path,
-        default=Path("docs/v0.3.0_locked_results.md"),
+        default=Path("docs/v0.3.0_library_self_test.md"),
     )
     parser.add_argument("--results-json", type=Path,
-                        default=Path("docs/v0.3.0_locked_results.json"))
+                        default=Path("docs/v0.3.0_library_self_test.json"))
     args = parser.parse_args(argv)
 
     repo_root = Path(__file__).resolve().parent.parent
@@ -201,14 +208,22 @@ def main(argv=None) -> int:
 
     # ── Markdown report ──
     lines: list = [
-        f"# HNEP v{hnep.__version__} — Locked Results on Four Datasets",
+        f"# HNEP v{hnep.__version__} — Library Self-Test (NOT Thesis Reproduction)",
         "",
         f"_Generated {datetime.now(timezone.utc).isoformat()}_",
+        "",
+        "> **These verdicts are NOT the thesis results.** The script that",
+        "> produced them substitutes a fresh Ridge readout for the trained",
+        "> Flax hybrid decoder, so the intervention Δ measures a different",
+        "> quantity than the thesis storyline (opposite sign on 3 of 4",
+        "> datasets). See ``scripts/locked_v030_results.py`` docstring for",
+        "> the full disclaimer. Use this report only as a library",
+        "> reproducibility self-test.",
         "",
         f"**Thresholds (T1.2 + v0.3.0 CI-aware recalibration):** "
         f"{thresholds.describe()}",
         "",
-        "## QCT verdicts",
+        "## QCT verdicts (Ridge-surrogate decoder)",
         "",
         "| Dataset | n | QCT verdict | SS | SS CI | Δ | Δ CI |",
         "|---|---|---|---|---|---|---|",

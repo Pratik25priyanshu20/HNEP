@@ -1,28 +1,33 @@
-"""ESOL sanity check — run HNEP v0.3.0 on the ESOL hybrid model's precomputed
-extractions and report verdicts.
+"""ESOL library self-test — NOT thesis reproduction.
 
-CAVEAT
-------
-The original ESOL hybrid model is a Flax network whose weights live in
-``Quantum_ML_for _Drug_Discovery/experiments/checkpoints/hybrid_model/``.
-Loading those weights requires the parent repo's model code; this script
-takes a faithful-approximation shortcut instead:
+============================================================================
+WARNING — read before quoting any number this script produces
+============================================================================
+This script does NOT reproduce the thesis analysis. It measures a different
+quantity than the thesis storyline:
 
-* SurrogationProbe needs only ``(X_classical, q)``. We use the precomputed
-  ``gnn_embeddings`` and ``quantum_outputs`` directly — this measurement is
-  EXACT (the same numbers a full v0.3.0 evaluate would compute).
+- Thesis: interventional Δ on the trained Hybrid-V1 Flax decoder — asks
+  "does the *trained* hybrid depend on quantum at inference?"
+- This script: interventional Δ on a *fresh* Ridge readout re-fitted on
+  ``(quantum, gnn) → Flax_predictions`` — asks "does a from-scratch Ridge
+  benefit from quantum features?"
 
-* InterventionProbe needs the trained decoder's
-  ``predict_with_quantum_override``. We approximate the decoder with a Ridge
-  readout fit on ``(quantum_outputs, gnn_embeddings) → predictions``. The
-  surrogate Ridge tracks the original Flax network closely on the training
-  split (R² > 0.99 typical) since the original network's final layer is
-  itself a small MLP whose linear span the Ridge captures. Δ values from
-  this Ridge approximation should match the original within a few percent.
+Those two questions have different answers and can flip the sign of Δ.
+The Ridge readout is a convenience surrogate for the Flax decoder (whose
+weights live in the parent repo and require its model code to load). It
+lets us exercise the HNEP pipeline end-to-end on real molecular data as a
+library reproducibility self-test, but its verdicts are NOT canonical for
+any scientific claim about the ESOL hybrid model. For a canonical ESOL
+verdict, run the thesis analysis with the trained decoder.
 
-The verdict can therefore drift between this approximation and the true
-trained model on borderline cases. We're using it as a smell test:
-""does HNEP v0.3.0 produce sensible verdicts on real chemistry data?""
+The SurrogationProbe SS half of the result IS exact — it depends only on
+``(quantum, gnn)``, both of which we have at full fidelity from the
+extraction. Only the InterventionProbe Δ is affected by the Ridge
+substitution.
+
+Output labelled ``docs/v0.3.0_library_self_test_esol*`` for exactly this
+reason. Do not rename to imply thesis reproduction.
+============================================================================
 
 Usage:
     python scripts/sanity_check_esol.py [--extraction PATH]
@@ -54,7 +59,7 @@ def main(argv=None):
     parser.add_argument(
         "--report-path",
         type=Path,
-        default=Path("docs/v0.3.0_esol_sanity_check.md"),
+        default=Path("docs/v0.3.0_library_self_test_esol.md"),
     )
     args = parser.parse_args(argv)
 
@@ -169,34 +174,39 @@ def main(argv=None):
     # ── Write a short markdown report ──
     args.report_path.parent.mkdir(parents=True, exist_ok=True)
     args.report_path.write_text(
-        f"""# ESOL sanity check — HNEP v{hnep.__version__}
+        f"""# HNEP v{hnep.__version__} — ESOL Library Self-Test (NOT Thesis Reproduction)
 
-**Verdict:** `{result.qct_verdict}`
+> **This verdict is NOT the thesis ESOL result.** It comes from a fresh
+> Ridge readout re-fitted on `(quantum, gnn) → Flax_predictions`, not
+> from the trained Hybrid-V1 decoder. The InterventionProbe Δ is
+> particularly affected — it can flip sign under this substitution — and
+> should be interpreted only as a library reproducibility self-test. For
+> a canonical ESOL verdict, run the thesis analysis with the trained
+> decoder. See `scripts/sanity_check_esol.py` docstring for the full
+> disclaimer.
+
+**Verdict (Ridge-surrogate decoder):** `{result.qct_verdict}`
 
 | Probe | Score | CI | Verdict |
 |---|---|---|---|
 | SurrogationProbe | {sur.primary_score:.4f} | [{sur.primary_score_ci[0]:.4f}, {sur.primary_score_ci[1]:.4f}] | {sur.verdict} |
 | InterventionProbe | {inter.primary_score:.4f} | [{inter.primary_score_ci[0]:.4f}, {inter.primary_score_ci[1]:.4f}] | {inter.verdict} |
 
-Thresholds (T1.2 + v0.3.1 CI-aware recalibration):
+Thresholds (T1.2 + v0.3.0 CI-aware recalibration):
 {thresholds.describe()}
 
-## Caveat — Ridge surrogate decoder
+## What this measures vs. what the thesis measures
 
-The original ESOL hybrid model is a Flax network whose weights live in the
-parent thesis repo. Loading them inside HNEP requires the parent repo's
-model code. This sanity check substitutes the trained decoder with a
-Ridge readout fit on `(quantum, gnn) → predictions` from the precomputed
-extraction. The Ridge tracks the original network closely on its training
-distribution (see script for R²), but borderline verdicts may not be
-identical to a full Flax re-evaluation.
+- **Thesis storyline**: interventional Δ on the trained Hybrid-V1 Flax
+  decoder — asks "does the *trained* hybrid depend on quantum at
+  inference?"
+- **This script**: interventional Δ on a *fresh* Ridge readout re-fitted
+  on `(quantum, gnn) → Flax_predictions` — asks "does a from-scratch
+  Ridge benefit from quantum features?"
 
-## v0.2 baseline
-
-No pre-existing v0.2 HNEP report on ESOL was located in the parent repo, so
-this run is a **first-cut** real-data check rather than a before/after
-diff. We use it to confirm v0.3.0 returns a sensible verdict on real
-chemistry data — not to validate against a published prior.
+Those two questions have different answers. Only the SurrogationProbe SS
+half of the result IS exact — it depends only on `(quantum, gnn)`, both
+of which we have at full fidelity from the extraction.
 
 ## Reproducing
 

@@ -35,11 +35,18 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - README block explicitly separates ED (diagnostic) from the verdict-
   gating probes (surrogation + intervention).
 
-### Added — Locked v0.3.0 results on four datasets
-- `scripts/locked_v030_results.py` runs HNEP on the parent thesis repo's
-  precomputed extractions for ESOL / FreeSolv / QM9 / Lipo, using a
-  Ridge readout as a surrogate for the Flax decoder. Report at
-  `docs/v0.3.0_locked_results.md`.
+### Added — Library self-test scripts (NOT thesis reproduction)
+- `scripts/locked_v030_results.py` and `scripts/sanity_check_esol.py`
+  exercise HNEP end-to-end on the parent thesis repo's precomputed
+  extractions (ESOL / FreeSolv / QM9 / Lipo). Both substitute a fresh
+  Ridge readout for the trained Flax Hybrid-V1 decoder, so their
+  intervention Δ measures "does a from-scratch Ridge benefit from
+  quantum features?" — NOT the thesis's "does the trained hybrid depend
+  on quantum at inference?". The two questions can flip the sign of Δ,
+  and empirically do on 3 of 4 datasets. Report paths renamed to
+  `docs/v0.3.0_library_self_test*` and script docstrings carry the
+  disclaimer prominently. **Do not read these outputs as thesis
+  verdicts.**
 
 ## [0.3.0] — 2026-06-30
 
@@ -129,10 +136,11 @@ coverage: **SS 100%, Δ 96%** (Reg/DW/Ig × 15 seeds, n=400 vs n=2000 truth).
   cruft tests (`test_quantum_circuits.py`, `test_models.py`,
   `test_classical_model.py`, `test_data_loaders.py`, `test_training.py`)
   that import from a parent-project `src.*` module no longer present.
-- `scripts/sanity_check_esol.py` exercises HNEP on real chemistry data
-  (the ESOL extraction from the parent thesis repo); first-cut verdict on
-  the precomputed extractions is Inconclusive (SS CI straddles threshold;
-  Δ cleanly load-bearing).
+- `scripts/sanity_check_esol.py` exercises HNEP end-to-end on the ESOL
+  extraction from the parent thesis repo as a library reproducibility
+  self-test. It substitutes a fresh Ridge readout for the trained Flax
+  decoder — the resulting intervention Δ is NOT the thesis Δ (opposite
+  sign is possible). Script docstring and output carry the disclaimer.
 
 ## [0.2.0] — 2026-06-28
 
