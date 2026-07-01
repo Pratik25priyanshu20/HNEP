@@ -1,5 +1,10 @@
 """InterventionProbe — the intervention family.
 
+**Core probe — verdict-driving.** Validated against the ground-truth
+synthetic benchmark (100% accuracy on 60 cells) and the thesis's
+real-data experiments. Consumed by :class:`hnep.QCTClassifier` alongside
+:class:`SurrogationProbe` and :class:`RepresentationProbe`.
+
 Implements four counterfactual interventions on the trained model and measures
 the relative R² drop in each. The headline score is the relative drop under
 the canonical ``zero_quantum`` intervention; the other three (random_noise,

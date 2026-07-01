@@ -7,6 +7,33 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — v0.4 in progress
 
+### Changed — Probes tiered into Core + Diagnostics
+- v0.4 tiers the probe API into a validated core
+  (`SurrogationProbe`, `InterventionProbe`, `RepresentationProbe`) that
+  drives QCT verdicts, and a diagnostic tier
+  (`NoiseProbe`, `TemporalProbe`, `ErrorDiversityProbe`) housed under
+  `hnep.diagnostics` for supplementary evidence. This reflects a
+  considered API design: core probes have been validated against the
+  thesis's real-data experiments and the synthetic ground-truth
+  benchmark. Diagnostic probes are methodologically sound but returned
+  null results (Noise, Temporal) or exposed a readout weakness
+  (Error Diversity — Ridge readout unreliable when either branch is
+  non-linearly informative) during real-data evaluation. Users may still
+  run diagnostics for their own convergent-validity picture, but should
+  not use them to override the core QCT verdict.
+- `hnep.diagnostics` subpackage created with `NoiseProbe`,
+  `TemporalProbe`, `ErrorDiversityProbe`, and the `gaussian_noise` /
+  `depolarizing_approx` / `bit_flip_noise` helpers.
+- Top-level `from hnep import NoiseProbe` (and the other two) still
+  works via a PEP 562 `__getattr__` shim, but emits a
+  `DeprecationWarning` pointing at the new location.
+- `QCTClassifier` signature stays `(surrogation, intervention,
+  representation)` — the classifier cannot accidentally gate on a
+  diagnostic probe. The class docstring now explicitly states this.
+- Core probe docstrings updated to state "Core probe — verdict-driving";
+  diagnostic probe docstrings state "Diagnostic probe — supplementary
+  evidence, not verdict-driving" and name their known limitation.
+
 ### Added — Convergent-validity gate on the QCT classifier
 - `QCTClassifier(use_convergent_validity=True)` counts agreement across
   four signals: SS (surrogation), Δ (intervention), CKA (from the

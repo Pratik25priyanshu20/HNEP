@@ -1,5 +1,10 @@
 """RepresentationProbe — CKA + Mutual Information analysis.
 
+**Core probe — verdict-driving under convergent validity.** Consumed by
+:class:`hnep.QCTClassifier` when ``use_convergent_validity=True``,
+alongside :class:`SurrogationProbe` and :class:`InterventionProbe`. CKA
+and MI provide two of the four votes in the convergent-validity gate.
+
 To our knowledge, the first application of CKA (Kornblith et al. 2019) to
 quantum-classical comparison in QML. Bundled with k-NN mutual information
 estimation for a complete representation-level picture.

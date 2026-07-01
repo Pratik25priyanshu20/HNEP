@@ -97,27 +97,28 @@ Wrap your model in one line:
 
 See [`hnep/examples/`](hnep/examples) for runnable examples of each.
 
-## What's in v0.2.0
+## Core probes vs Diagnostics
 
-**Six probes** — each independently answers one question about your hybrid:
+v0.4 tiers HNEP's probes into a **verdict-driving core** — the three
+probes `QCTClassifier` consumes — and a **diagnostic tier** for
+supplementary evidence. Diagnostic probes run to completion and return
+valid results, but they do not gate the QCT verdict.
 
-| Probe | Question |
-|---|---|
-| `SurrogationProbe` | Can a classical surrogate reproduce the quantum output? |
-| `InterventionProbe` | Does removing the quantum branch hurt performance? |
-| `NoiseProbe` | Is the verdict stable under realistic quantum noise? |
-| `TemporalProbe` | Does the verdict change across training checkpoints? |
-| `ErrorDiversityProbe` *(diagnostic only — see note below)* | Do quantum and classical branches err on the same molecules? |
-| `RepresentationProbe` | CKA + mutual information — which embedding is more target-aligned? |
+| Probe | Category | Verdict-driving | Known limitations |
+|---|---|---|---|
+| `SurrogationProbe` | **Core** — `hnep.SurrogationProbe` | Yes | — |
+| `InterventionProbe` | **Core** — `hnep.InterventionProbe` | Yes | — |
+| `RepresentationProbe` (CKA + MI) | **Core** — `hnep.RepresentationProbe` | Yes (under `use_convergent_validity=True`) | — |
+| `NoiseProbe` | Diagnostic — `hnep.diagnostics.NoiseProbe` | No | Returned null (no verdict flip) on the thesis datasets |
+| `TemporalProbe` | Diagnostic — `hnep.diagnostics.TemporalProbe` | No | Same as `NoiseProbe` — null result on thesis datasets |
+| `ErrorDiversityProbe` | Diagnostic — `hnep.diagnostics.ErrorDiversityProbe` | No | Ridge readout fails when either branch is non-linearly informative; see `low_readout_strength` flag in details |
 
-> **`ErrorDiversityProbe` is diagnostic-only.** It does not gate the QCT
-> verdict; `QCTClassifier` consumes only `SurrogationProbe` + `InterventionProbe`.
-> Both ED readouts are Ridge linear models, so on hybrids whose quantum branch
-> encodes non-linear information the residuals can correlate spuriously and
-> produce a misleading REDUNDANT verdict. The probe surfaces a
-> `low_readout_strength` flag in `details` (fires when `min(R²_q, R²_c) < 0.4`)
-> — treat any REDUNDANT verdict under that flag as Inconclusive. A
-> non-linear readout ladder is on the roadmap.
+The three diagnostic probes remain importable from the top-level `hnep`
+namespace via a deprecation shim (`from hnep import NoiseProbe` still
+works but emits a `DeprecationWarning` pointing at `hnep.diagnostics`).
+`QCTClassifier`'s signature (`surrogation, intervention, representation`)
+excludes diagnostics by construction — you cannot accidentally gate the
+verdict on a diagnostic probe result.
 
 **Killer outputs**
 

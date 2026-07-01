@@ -1,11 +1,13 @@
 """ErrorDiversityProbe — measure whether quantum and classical branches make
 different mistakes.
 
-**DIAGNOSTIC ONLY — not used for QCT verdict gating.**
-``QCTClassifier`` consumes ``SurrogationProbe`` + ``InterventionProbe`` only.
-The verdict from this probe is descriptive evidence for users who want to
-inspect whether the two branches err on the same molecules, but it is not
-load-bearing for any HNEP verdict.
+**Diagnostic probe — supplementary evidence, not verdict-driving.** Housed
+under :mod:`hnep.diagnostics`. ``QCTClassifier`` consumes only the core
+tier (Surrogation + Intervention + Representation) and never this probe,
+even under ``use_convergent_validity=True``. Known limitation: the Ridge
+readout below fails on non-linearly informative branches and produces a
+spurious REDUNDANT verdict; the ``low_readout_strength`` flag surfaces
+this failure mode explicitly.
 
 Why this is diagnostic-only
 ---------------------------

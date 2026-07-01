@@ -1,5 +1,12 @@
 """NoiseProbe — measure how QCT verdicts survive noise on the quantum output.
 
+**Diagnostic probe — supplementary evidence, not verdict-driving.** Housed
+under :mod:`hnep.diagnostics`. Provides stability signals that supplement
+the core (Surrogation + Intervention + Representation) verdict but are
+not consumed by :class:`hnep.QCTClassifier`. Known limitation: returned
+null results (no verdict flip) on the thesis datasets — informative for
+stability sanity but not discriminating enough to gate a verdict.
+
 The Sprint 2.5 noise analysis in the thesis injected depolarizing noise
 directly into the quantum circuit. The library version takes a
 framework-agnostic approach: perturb the *already-extracted* quantum outputs

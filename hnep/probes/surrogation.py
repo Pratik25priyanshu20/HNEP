@@ -1,5 +1,10 @@
 """SurrogationProbe — surrogate-ladder mimicry test.
 
+**Core probe — verdict-driving.** Validated against the ground-truth
+synthetic benchmark (100% accuracy on 60 cells) and the thesis's
+real-data experiments. Consumed by :class:`hnep.QCTClassifier` alongside
+:class:`InterventionProbe` and :class:`RepresentationProbe`.
+
 Trains a battery of classical surrogate models to predict the quantum branch's
 output from the dataset's classical features. If any surrogate succeeds, the
 quantum output is informationally **replaceable**.

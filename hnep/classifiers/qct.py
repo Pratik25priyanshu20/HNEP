@@ -71,8 +71,18 @@ class QCTClassifier:
     the base (SS+Δ) verdict, that verdict is returned. Otherwise the
     classifier emits ``DISAGREEMENT``. When ``representation`` is None or
     its verdict is ``UNAVAILABLE``, the convergent gate is skipped and
-    only the base (SS+Δ) verdict applies. The error-diversity probe is
-    NOT a classifier input — it is diagnostic only.
+    only the base (SS+Δ) verdict applies.
+
+    Diagnostic probes are explicitly not consumed
+    ---------------------------------------------
+    ``QCTClassifier`` never accepts a diagnostic probe (Noise, Temporal,
+    ErrorDiversity, housed under :mod:`hnep.diagnostics`) as an input.
+    The signature is fixed at (surrogation, intervention, representation)
+    exactly to prevent silent verdict-gating by probes that returned null
+    results (Noise, Temporal) or exposed a readout weakness (Error
+    Diversity) during real-data evaluation. Users wanting a fuller
+    picture may run the diagnostic probes and attach the results to
+    ``HNEPResult.probes``, but ``qct_verdict`` will be unaffected.
     """
 
     thresholds: Thresholds = DEFAULT_THRESHOLDS

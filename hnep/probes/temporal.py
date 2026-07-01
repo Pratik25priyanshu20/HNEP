@@ -1,5 +1,12 @@
 """TemporalProbe — measure QCT verdict stability across training checkpoints.
 
+**Diagnostic probe — supplementary evidence, not verdict-driving.** Housed
+under :mod:`hnep.diagnostics`. Provides stability signals that supplement
+the core (Surrogation + Intervention + Representation) verdict but are
+not consumed by :class:`hnep.QCTClassifier`. Known limitation: returned
+null results (no verdict flip) on the thesis datasets — informative for
+stability sanity but not discriminating enough to gate a verdict.
+
 The Sprint 2.5 temporal stability experiment in the thesis re-ran the
 HNEP probes at epoch checkpoints 5/10/15/20 of training to test whether
 the QCT verdict drifts during training. On FreeSolv, multi-seed runs
