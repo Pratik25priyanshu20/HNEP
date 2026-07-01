@@ -10,6 +10,7 @@ from __future__ import annotations
 from hnep.benchmarks.ground_truth import (
     BenchmarkReport,
     make_adversarial,
+    make_adversarial_convergent,
     make_dead_weight,
     make_genuine,
     make_ignored,
@@ -26,5 +27,6 @@ __all__ = [
     "make_dead_weight",
     "make_inconclusive",
     "make_adversarial",
+    "make_adversarial_convergent",
     "run_ground_truth_benchmark",
 ]

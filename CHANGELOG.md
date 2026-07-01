@@ -5,7 +5,17 @@ All notable changes to HNEP are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] — v0.4 in progress
+## [0.4.0] — 2026-07-02
+
+Gold-standard API release. Ships the convergent-validity-aware QCT
+classifier, adds a seventh benchmark cell (AdversarialConvergent) that
+validates it, and reorganises probes into a verdict-driving **core**
+(`SurrogationProbe` / `InterventionProbe` / `RepresentationProbe`) and a
+supplementary **diagnostic** tier housed under `hnep.diagnostics`. 7-
+archetype benchmark under the convergent-validity gate: **100% (70/70)**.
+Without the gate: **85.7% (60/70)** — AdversarialConvergent's DISAGREEMENT
+verdict is unreachable without CKA + MI. That gap is the empirical case
+for the gate.
 
 ### Changed — Probes tiered into Core + Diagnostics
 - v0.4 tiers the probe API into a validated core
@@ -33,6 +43,23 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - Core probe docstrings updated to state "Core probe — verdict-driving";
   diagnostic probe docstrings state "Diagnostic probe — supplementary
   evidence, not verdict-driving" and name their known limitation.
+
+### Added — AdversarialConvergent archetype (7th benchmark cell)
+- `hnep.benchmarks.make_adversarial_convergent` constructs a synthetic
+  hybrid where SS says NECESSARY and Δ says NOT-LOAD-BEARING (base
+  verdict IGNORED) — but CKA(q, y) and MI(q, y) both signal that quantum
+  IS target-aligned. Its `expected_verdict = QCTVerdict.DISAGREEMENT`,
+  reachable only under `use_convergent_validity=True`.
+- Under `use_convergent_validity=False` (default) the archetype scores 0%
+  by design — the naïve (SS+Δ) classifier can't emit DISAGREEMENT and
+  falls back to the base IGNORED verdict. Under
+  `use_convergent_validity=True` all 7 archetypes classify at 100%. That
+  contrast is the empirical case for the convergent-validity gate.
+- `hnep.evaluate(..., use_convergent_validity=True)` auto-adds
+  `RepresentationProbe` to the default probe battery so CKA + MI signals
+  are available to the classifier.
+- `run_ground_truth_benchmark(use_convergent_validity=True)` threads the
+  flag through the runner.
 
 ### Added — Convergent-validity gate on the QCT classifier
 - `QCTClassifier(use_convergent_validity=True)` counts agreement across

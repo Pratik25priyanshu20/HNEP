@@ -496,6 +496,84 @@ def make_inconclusive(
     return adapter, dataset, QCTVerdict.INCONCLUSIVE
 
 
+def make_adversarial_convergent(
+    seed: int = 0, n_samples: int = 400
+) -> Tuple[FunctionalAdapter, Dataset, QCTVerdict]:
+    """Base (SS+Δ) verdict says IGNORED but CKA + MI both say quantum is
+    target-aligned — convergent-validity gate emits DISAGREEMENT.
+
+    Construction:
+      * Two hidden signals z₁, z₂ = high-frequency sines along two random
+        input directions (unsurrogateable from x).
+      * q = [z₁, cos(ω·w₁ᵀx), z₂, cos(ω·w₂ᵀx)] — its 4-dim linear span
+        covers both z₁ and z₂ completely.
+      * y = z₁ + z₂ + noise — target needs both components.
+      * Classical embedding c has z₁ injected as its first feature, so
+        classical Ridge can recover HALF of y (β_c = [1, tiny, ...]).
+      * Decoder β_q is drawn near zero — the trained decoder IGNORES q
+        even though q carries the missing half of the target.
+
+    Verdict paths:
+      * SS: q is high-frequency sines → surrogates fail → NECESSARY.
+      * Δ: β_q ≈ 0 → zeroing q barely changes predictions → NOT-LOAD-BEARING.
+        Base = IGNORED.
+      * CKA(q, y) ≈ 1 (q's linear span covers z₁+z₂); CKA(c, y) ≈ 0.5
+        (only z₁). Quantum-more-aligned.
+      * MI(q, y) > MI(c, y) → quantum info share > 0.5.
+
+    Under ``use_convergent_validity=False`` the classifier returns IGNORED
+    (wrong — quantum was informative, just wasted). Under
+    ``use_convergent_validity=True`` votes split 2 (SS+Δ) vs 2 (CKA+MI)
+    and the classifier emits DISAGREEMENT.
+    """
+    rng = np.random.default_rng(seed)
+
+    W_c, b_c = _draw_classical_population(rng)
+    w1 = rng.normal(scale=1.0, size=_D_INPUT)
+    w2 = rng.normal(scale=1.0, size=_D_INPUT)
+    omega_hard = 15.0
+    # β_c = [1, small noise ...] — decoder captures z₁ via c[0] but misses z₂.
+    beta_c = np.concatenate([[1.0], rng.normal(scale=0.05, size=_C_DIM - 1)])
+    # β_q = 0 exactly (not drawn from the noise scale used by IGNORED/DEAD_WEIGHT).
+    # Rationale: AdvConv doesn't feed threshold calibration (Ignored/DW do), so
+    # a degenerate Δ = 0 is safe here — and it stops random β_q draws from
+    # pushing Δ across the load-bearing threshold with a wide-CI Inconclusive.
+    beta_q = np.zeros(_Q_DIM)
+
+    X = _draw_X(rng, n_samples)
+    proj1 = X @ w1
+    proj2 = X @ w2
+    z1 = np.sin(omega_hard * proj1)
+    z2 = np.sin(omega_hard * proj2)
+
+    c_table = _apply_classical_features(X, W_c, b_c).copy()
+    c_table[:, 0] = z1  # inject z₁ as the first classical feature
+
+    # Each q dim carries a distinct sign-varied combination of z₁ and z₂ so
+    # per-dim MI(q_i, y) is high (each is a near-y-clean signal), giving
+    # quantum_info_share > 0.5 despite the 16-dim vs 4-dim asymmetry.
+    q_signal = np.stack(
+        [z1 + z2, z1 - z2, 2.0 * z1 + z2, z1 + 2.0 * z2], axis=1
+    )
+    q_signal = q_signal / (q_signal.std(axis=0, keepdims=True) + 1e-9)
+    obs_noise = rng.normal(scale=_Q_OBSERVATION_NOISE_STD, size=q_signal.shape)
+    q_table = q_signal + obs_noise
+    train_idx, test_idx, cluster_ids = _draw_split_and_clusters(rng, n_samples)
+
+    y_clean = z1 + z2
+    y = y_clean + _NOISE_STD * rng.normal(size=n_samples)
+
+    adapter = _build_adapter(
+        "benchmark_adversarial_convergent",
+        q_table, c_table, beta_q, beta_c, 0.0,
+    )
+    dataset = _pack_dataset(
+        X, y, train_idx, test_idx, "adversarial_convergent_bench",
+        cluster_ids=cluster_ids,
+    )
+    return adapter, dataset, QCTVerdict.DISAGREEMENT
+
+
 def make_adversarial(
     seed: int = 0, n_samples: int = 400
 ) -> Tuple[FunctionalAdapter, Dataset, QCTVerdict]:
@@ -547,6 +625,7 @@ _ARCHETYPE_FACTORIES: Dict[str, Callable[..., Tuple[FunctionalAdapter, Dataset, 
     "dead_weight": make_dead_weight,
     "inconclusive": make_inconclusive,
     "adversarial": make_adversarial,
+    "adversarial_convergent": make_adversarial_convergent,
 }
 
 
@@ -617,6 +696,7 @@ def run_ground_truth_benchmark(
     archetypes: Optional[Sequence[str]] = None,
     return_per_seed: bool = False,
     verbose: bool = False,
+    use_convergent_validity: bool = False,
 ) -> BenchmarkReport:
     """Run the full archetype × seed grid and aggregate verdicts.
 
@@ -627,12 +707,18 @@ def run_ground_truth_benchmark(
     n_samples
         Samples per synthetic dataset.
     archetypes
-        Subset of archetype names to run. ``None`` runs all six.
+        Subset of archetype names to run. ``None`` runs all seven
+        (six standard + ``adversarial_convergent``).
     return_per_seed
         If ``True``, the returned report includes every run in
         ``per_seed``. Off by default to keep reports small.
     verbose
         Print per-run progress to stdout.
+    use_convergent_validity
+        When ``True``, ``evaluate`` runs :class:`RepresentationProbe` and the
+        QCT classifier consumes it as two additional votes (CKA + MI). This
+        is required for the ``adversarial_convergent`` archetype to classify
+        correctly (expected ``DISAGREEMENT`` — unreachable without the gate).
     """
     if archetypes is None:
         archetypes = list(_ARCHETYPE_FACTORIES.keys())
@@ -655,7 +741,12 @@ def run_ground_truth_benchmark(
             if verbose:
                 print(f"[bench] {arch} seed={seed} …")
             adapter, dataset, expected = factory(seed=seed, n_samples=n_samples)
-            result = evaluate(adapter, dataset, verbose=False)
+            result = evaluate(
+                adapter,
+                dataset,
+                verbose=False,
+                use_convergent_validity=use_convergent_validity,
+            )
             predicted = result.qct_verdict
             sur = result.probes["surrogation"]
             inter = result.probes["intervention"]

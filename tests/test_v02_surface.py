@@ -12,7 +12,7 @@ import inspect
 import hnep
 
 
-EXPECTED_VERSION = "0.3.0"
+EXPECTED_VERSION = "0.4.0"
 
 # Everything we promise users can import from the top-level `hnep` namespace.
 EXPECTED_TOP_LEVEL = {

@@ -13,6 +13,7 @@ from hnep.adapters.base import Dataset, ModelInterface
 from hnep.classifiers.qct import QCTClassifier, QCTVerdict
 from hnep.probes.base import Probe
 from hnep.probes.intervention import InterventionProbe
+from hnep.probes.representation import RepresentationProbe
 from hnep.probes.surrogation import SurrogationProbe
 from hnep.results.hnep_result import HNEPResult
 from hnep.thresholds import DEFAULT_THRESHOLDS, Thresholds
@@ -24,6 +25,7 @@ def evaluate(
     probes: Optional[Sequence[Probe]] = None,
     thresholds: Thresholds = DEFAULT_THRESHOLDS,
     verbose: bool = False,
+    use_convergent_validity: bool = False,
 ) -> HNEPResult:
     """Run a full HNEP evaluation on ``model``.
 
@@ -35,17 +37,25 @@ def evaluate(
         The evaluation data, packaged as :class:`Dataset`.
     probes
         Optional explicit list of probes. If ``None``, the v0.1.0 default
-        battery (surrogation + intervention) is used.
+        battery (surrogation + intervention) is used — plus
+        :class:`RepresentationProbe` when ``use_convergent_validity=True``.
     thresholds
         QCT classification thresholds.
     verbose
         Print probe-level progress to stdout.
+    use_convergent_validity
+        When ``True`` (v0.4), the QCT classifier consumes the
+        :class:`RepresentationProbe` result (CKA + MI) as two additional
+        votes. Base (SS+Δ) verdict is returned when ≥3 of 4 signals
+        agree; otherwise :attr:`QCTVerdict.DISAGREEMENT` is emitted.
     """
     if probes is None:
         probes = [
             SurrogationProbe(thresholds=thresholds),
             InterventionProbe(thresholds=thresholds),
         ]
+        if use_convergent_validity:
+            probes = list(probes) + [RepresentationProbe()]
 
     result = HNEPResult(
         model_name=model.name,
@@ -64,11 +74,16 @@ def evaluate(
         probe_result.details["elapsed_seconds"] = round(probe_t1 - probe_t0, 3)
         result.probes[probe.name] = probe_result
 
-    # If we have both probes, run the QCT classifier
+    # If we have both core probes, run the QCT classifier
     sur = result.probes.get("surrogation")
     inter = result.probes.get("intervention")
     if sur is not None and inter is not None:
-        verdict = QCTClassifier(thresholds=thresholds).classify(sur, inter)
+        classifier = QCTClassifier(
+            thresholds=thresholds,
+            use_convergent_validity=use_convergent_validity,
+        )
+        rep = result.probes.get("representation") if use_convergent_validity else None
+        verdict = classifier.classify(sur, inter, representation=rep)
         result.qct_verdict = verdict.value
         # Aggregate confidence as the minimum of the two probes' confidences,
         # which is conservative — verdict is only as confident as its weakest leg.

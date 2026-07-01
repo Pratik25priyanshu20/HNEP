@@ -22,6 +22,7 @@ import hnep
 from hnep.benchmarks import (
     BenchmarkReport,
     make_adversarial,
+    make_adversarial_convergent,
     make_dead_weight,
     make_genuine,
     make_ignored,
@@ -39,6 +40,7 @@ _ALL_MAKERS = [
     ("dead_weight", make_dead_weight, QCTVerdict.DEAD_WEIGHT),
     ("inconclusive", make_inconclusive, QCTVerdict.INCONCLUSIVE),
     ("adversarial", make_adversarial, QCTVerdict.GENUINE),
+    ("adversarial_convergent", make_adversarial_convergent, QCTVerdict.DISAGREEMENT),
 ]
 
 
@@ -138,11 +140,17 @@ def test_unknown_archetype_raises():
 
 @pytest.mark.skipif(
     not os.environ.get("HNEP_RUN_BENCH"),
-    reason="Set HNEP_RUN_BENCH=1 to run the full 10-seed × 6-archetype suite (~10min).",
+    reason="Set HNEP_RUN_BENCH=1 to run the full 10-seed × 7-archetype suite (~15min).",
 )
-def test_full_benchmark_meets_accuracy_bar():
-    """T1.2 acceptance criterion: ≥98% verdict accuracy on the 60-cell grid
-    under the calibrated default thresholds. (T1.1 baseline was 98.3% under
-    legacy thresholds; T1.2 must not regress.)"""
-    report = run_ground_truth_benchmark(n_seeds=10, n_samples=400)
+def test_full_benchmark_meets_accuracy_bar_core_six_archetypes():
+    """Core six archetypes at 100% under the default classifier — v0.3.0
+    acceptance preserved. The seventh (adversarial_convergent) needs
+    use_convergent_validity=True to hit its DISAGREEMENT verdict; that path
+    is covered by tests/test_adversarial_convergent.py::
+    test_full_benchmark_convergent_gate_meets_bar."""
+    report = run_ground_truth_benchmark(
+        n_seeds=10, n_samples=400,
+        archetypes=["genuine", "regularizer", "ignored", "dead_weight",
+                    "inconclusive", "adversarial"],
+    )
     assert report.overall_accuracy >= 0.98, report.summary()
